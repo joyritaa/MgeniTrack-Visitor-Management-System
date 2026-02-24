@@ -1,0 +1,84 @@
+﻿@model MgeniTrack.Models.Visit
+
+@{
+    ViewData["Title"] = "Create";
+}
+
+<h1>Create</h1>
+
+<h4>Visit</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Create">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="form-group">
+                <label asp-for="VisitorId" class="control-label"></label>
+                <select asp-for="VisitorId" class ="form-control" asp-items="ViewBag.VisitorId"></select>
+            </div>
+            <div class="form-group">
+                <label asp-for="CheckedInBy" class="control-label"></label>
+                <select asp-for="CheckedInBy" class ="form-control" asp-items="ViewBag.CheckedInBy"></select>
+            </div>
+            <div class="form-group">
+                <label asp-for="CheckedOutBy" class="control-label"></label>
+                <select asp-for="CheckedOutBy" class ="form-control" asp-items="ViewBag.CheckedOutBy"></select>
+            </div>
+            <div class="form-group">
+                <label asp-for="HouseNumber" class="control-label"></label>
+                <input asp-for="HouseNumber" class="form-control" />
+                <span asp-validation-for="HouseNumber" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="PurposeOfVisit" class="control-label"></label>
+                <input asp-for="PurposeOfVisit" class="form-control" />
+                <span asp-validation-for="PurposeOfVisit" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="CarRegistration" class="control-label"></label>
+                <input asp-for="CarRegistration" class="form-control" />
+                <span asp-validation-for="CarRegistration" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="TimeIn" class="control-label"></label>
+                <input asp-for="TimeIn" class="form-control" />
+                <span asp-validation-for="TimeIn" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="TimeOut" class="control-label"></label>
+                <input asp-for="TimeOut" class="form-control" />
+                <span asp-validation-for="TimeOut" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="QrCode" class="control-label"></label>
+                <input asp-for="QrCode" class="form-control" />
+                <span asp-validation-for="QrCode" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="VisitDuration" class="control-label"></label>
+                <input asp-for="VisitDuration" class="form-control" />
+                <span asp-validation-for="VisitDuration" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="InvitationId" class="control-label"></label>
+                <select asp-for="InvitationId" class ="form-control" asp-items="ViewBag.InvitationId"></select>
+            </div>
+            <div class="form-group">
+                <label asp-for="CheckInMethod" class="control-label"></label>
+                <input asp-for="CheckInMethod" class="form-control" />
+                <span asp-validation-for="CheckInMethod" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Create" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

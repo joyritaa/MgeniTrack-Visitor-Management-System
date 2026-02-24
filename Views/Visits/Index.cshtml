@@ -1,0 +1,119 @@
+﻿@model IEnumerable<MgeniTrack.Models.Visit>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Index</h1>
+
+<p>
+    <a asp-action="Create">Create New</a>
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.HouseNumber)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.PurposeOfVisit)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.CarRegistration)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.NumberOfOccupants)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.TimeIn)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.TimeOut)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.VisitStatus)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.QrCode)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.VisitDuration)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.CreatedAt)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.CheckInMethod)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.CheckedInByNavigation)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.CheckedOutByNavigation)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Invitation)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Visitor)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.HouseNumber)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.PurposeOfVisit)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.CarRegistration)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.NumberOfOccupants)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.TimeIn)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.TimeOut)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.VisitStatus)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.QrCode)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.VisitDuration)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.CreatedAt)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.CheckInMethod)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.CheckedInByNavigation.UserId)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.CheckedOutByNavigation.UserId)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Invitation.InvitationId)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Visitor.VisitorId)
+            </td>
+            <td>
+                <a asp-action="Edit" asp-route-id="@item.VisitId">Edit</a> |
+                <a asp-action="Details" asp-route-id="@item.VisitId">Details</a> |
+                <a asp-action="Delete" asp-route-id="@item.VisitId">Delete</a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>
