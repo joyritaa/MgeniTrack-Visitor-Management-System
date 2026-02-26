@@ -5,7 +5,7 @@ namespace MgeniTrack.Models;
 
 public partial class VisitorInvitation
 {
-    public int InvitationId { get; set; }
+    public required int InvitationId { get; set; }
 
     public int ResidentId { get; set; }
 

@@ -23,7 +23,7 @@ public partial class Visitor
 
     public DateTime? UpdatedAt { get; set; }
 
-    public int? InvitedViaInvitationId { get; set; }
+    public int InvitedViaInvitationId { get; set; }
 
     public virtual VisitorInvitation? InvitedViaInvitation { get; set; }
 

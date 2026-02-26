@@ -37,11 +37,11 @@ public partial class Visit
 
     public string? CheckInMethod { get; set; }
 
-    public virtual User? CheckedInByNavigation { get; set; }
+    public virtual User CheckedInByNavigation { get; set; } = null!;
 
-    public virtual User? CheckedOutByNavigation { get; set; }
+    public virtual User CheckedOutByNavigation { get; set; } = null!;
 
-    public virtual VisitorInvitation? Invitation { get; set; }
+    public virtual VisitorInvitation Invitation { get; set; } = null!;
 
     public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 

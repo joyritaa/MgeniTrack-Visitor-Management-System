@@ -72,7 +72,22 @@ public class AccountController : Controller
 
             HttpContext.SignInAsync("MyCookieAuth", principal).Wait();
 
-            return RedirectToAction("Index", "Home");
+            if (claims.Any(c => c.Type == ClaimTypes.Role && c.Value == "SuperAdmin"))
+            {
+                return RedirectToAction("Dashboard", "SuperAdmin");
+            }
+
+            if (claims.Any(c => c.Type == ClaimTypes.Role && c.Value == "PropertyManager"))
+            {
+                return RedirectToAction("Dashboard", "PropertyManager");
+            }
+
+            if (claims.Any(c => c.Type == ClaimTypes.Role && c.Value == "Guard"))
+            {
+                return RedirectToAction("Dashboard", "Guard");
+            }
+
+            return RedirectToAction("Login");
         }
 
         ModelState.AddModelError("", "Invalid email or password");
