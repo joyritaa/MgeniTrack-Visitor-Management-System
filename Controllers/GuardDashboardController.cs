@@ -3,10 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace MgeniTrack.Controllers
 {
-    public class SuperAdminController : Controller
+    [Authorize(Roles ="Guard")]
+    public class GuardDashboardController : Controller
     {
-        [Authorize(Roles = "SuperAdmin")]
-        public IActionResult Dashboard()
+        public IActionResult Index()
         {
             return View();
         }

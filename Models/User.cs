@@ -31,7 +31,7 @@ public partial class User
 
     public virtual ICollection<ActivityLog> ActivityLogs { get; set; } = new List<ActivityLog>();
 
-    public virtual User? CreatedByNavigation { get; set; }
+    public required virtual User CreatedByNavigation { get; set; }
 
     public virtual ICollection<User> InverseCreatedByNavigation { get; set; } = new List<User>();
 

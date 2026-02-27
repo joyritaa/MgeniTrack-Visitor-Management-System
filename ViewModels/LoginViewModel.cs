@@ -10,6 +10,6 @@ namespace MgeniTrack.ViewModels
 
         [Required]
         [DataType(DataType.Password)]
-        public string? Password { get; set; }
+        public required string Password { get; set; }
     }
 }

@@ -3,10 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace MgeniTrack.Controllers
 {
-    public class GuardController : Controller
+    [Authorize(Roles ="Resident")]
+    public class ResidentDashboardController : Controller
     {
-        [Authorize(Roles = "Guard")]
-        public IActionResult Dashboard()
+        public IActionResult Index()
         {
             return View();
         }

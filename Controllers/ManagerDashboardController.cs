@@ -3,10 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace MgeniTrack.Controllers
 {
-    public class PropertyManagerController : Controller
+    [Authorize(Roles ="PropertyManager")]
+    public class ManagerDashboardController : Controller
     {
-        [Authorize(Roles = "PropertyManager")]
-        public IActionResult Dashboard()
+        public IActionResult Index()
         {
             return View();
         }

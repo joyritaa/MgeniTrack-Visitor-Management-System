@@ -19,6 +19,8 @@ builder.Services.AddAuthentication("MyCookieAuth")
         options.LoginPath = "/Account/Login";
     });
 
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
 
 app.UseAuthentication();
@@ -42,6 +44,6 @@ app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Users}/{action=Index}/{id?}");
+    pattern: "{controller=Account}/{action=Index}/{id?}");
 
 app.Run();
