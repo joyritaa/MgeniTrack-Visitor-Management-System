@@ -97,4 +97,9 @@ public class AccountController : Controller
 
         return RedirectToAction("Login");
     }
+    public async Task<IActionResult> Logout()
+    {
+        await HttpContext.SignOutAsync("MyCookieAuth");
+        return RedirectToAction("Login");
+    }
 }

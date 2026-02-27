@@ -9,41 +9,108 @@
     <link rel="stylesheet" href="~/MgeniTrack.styles.css" asp-append-version="true" />
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">MgeniTrack</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - MgeniTrack - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+    @if (User?.Identity?.IsAuthenticated == true)
+    {
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="text-center text-white mb-4">
+                <h4>MgeniTrack</h4>
+                <small>Access Management</small>
+            </div>
+
+            <ul class="nav flex-column px-3">
+
+                @* Super Admin *@
+                @if (User?.IsInRole("SuperAdmin") == true)
+                {
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="AdminDashboard" asp-action="Index">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="Users" asp-action="Index">Manage Users</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="Roles" asp-action="Index">Manage Roles</a>
+                    </li>
+                }
+
+                @* Property Manager *@
+                @if (User?.IsInRole("PropertyManager") == true)
+                {
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="ManagerDashboard" asp-action="Index">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="Residents" asp-action="Index">Residents</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="VisitorInvitations" asp-action="Index">Invitations</a>
+                    </li>
+                }
+
+                @* Guard *@
+                @if (User?.IsInRole("Guard") == true)
+                {
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="GuardDashboard" asp-action="Index">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="Visits" asp-action="Create">Check In</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="Visits" asp-action="Index">Active Visits</a>
+                    </li>
+                }
+
+                @* Resident *@
+                @if (User?.IsInRole("Resident") == true)
+                {
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="ResidentDashboard" asp-action="Index">My Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="VisitorInvitations" asp-action="Create">Invite Visitor</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="VisitorInvitations" asp-action="Index">My Invitations</a>
+                    </li>
+                }
+
+            </ul>
         </div>
-    </footer>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Top Bar -->
+            <div class="topbar d-flex justify-content-between align-items-center">
+                <span>
+                    Welcome, <strong>@(User?.Identity?.Name ?? "Unknown")</strong>
+                </span>
+                <a class="btn btn-outline-danger btn-sm" asp-controller="Account" asp-action="Logout">
+                    Logout
+                </a>
+            </div>
+
+            <div class="mt-4">
+                @RenderBody()
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- If not logged in, show normal layout -->
+        <div class="container">
+            <main role="main" class="pb-3 mt-5">
+                @RenderBody()
+            </main>
+        </div>
+    }
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
+
 </body>
 </html>
