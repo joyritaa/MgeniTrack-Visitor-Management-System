@@ -66,17 +66,19 @@ namespace MgeniTrack.Controllers
                 return View(model);
 
             var hasher = new PasswordHasher<User>();
-
             var creatorUser = await _context.Users.FirstOrDefaultAsync(); // Replace with actual logic to get the creator user
+            if (creatorUser == null)
+                throw new InvalidOperationException("Creator user must be set");
 
             var user = new User
             {
                 Firstname = model.Firstname,
                 Email = model.Email,
-                Passwordhash = hasher.HashPassword(user: new User { CreatedByNavigation = creatorUser ?? throw new InvalidOperationException("Creator user must be set") }, model.Password),
                 UserStatus = "Active",
                 CreatedByNavigation = creatorUser ?? throw new InvalidOperationException("Creator user must be set")
             };
+
+            user.Passwordhash = hasher.HashPassword(user, model.Password);
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
