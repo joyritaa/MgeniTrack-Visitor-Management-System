@@ -47,9 +47,15 @@ namespace MgeniTrack.Controllers
         }
 
         // GET: Users/Create
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
-            ViewBag.Roles = new SelectList(_context.Roles, "RoleId", "RoleName");
+            ViewBag.Roles = await _context.Roles
+                .Select(r => new SelectListItem
+                {
+                    Value = r.RoleId.ToString(),
+                    Text = r.RoleName
+                }).ToListAsync();
+
             return View();
         }
 
