@@ -1,4 +1,4 @@
-﻿@model MgeniTrack.Models.User
+﻿@model MgeniTrack.ViewModels.UserEditViewModel
 
 @{
     ViewData["Title"] = "Edit";
@@ -29,11 +29,6 @@
                 <span asp-validation-for="Gender" class="text-danger"></span>
             </div>
             <div class="form-group">
-                <label asp-for="Passwordhash" class="control-label"></label>
-                <input asp-for="Passwordhash" class="form-control" />
-                <span asp-validation-for="Passwordhash" class="text-danger"></span>
-            </div>
-            <div class="form-group">
                 <label asp-for="IdNumber" class="control-label"></label>
                 <input asp-for="IdNumber" class="form-control" />
                 <span asp-validation-for="IdNumber" class="text-danger"></span>
@@ -49,24 +44,31 @@
                 <span asp-validation-for="PhoneNumber" class="text-danger"></span>
             </div>
             <div class="form-group">
-                <label asp-for="UserStatus" class="control-label"></label>
-                <input asp-for="UserStatus" class="form-control" />
-                <span asp-validation-for="UserStatus" class="text-danger"></span>
+                <label asp-for="SelectedRoleId" class="control-label">Role</label>
+                <select asp-for="SelectedRoleId" asp-items="ViewBag.Roles" class="form-control">
+                    <option value="">-- Select Role --</option>
+                </select>
+                <span asp-validation-for="SelectedRoleId" class="text-danger"></span>
             </div>
             <div class="form-group">
-                <label asp-for="CreatedAt" class="control-label"></label>
-                <input asp-for="CreatedAt" class="form-control" />
-                <span asp-validation-for="CreatedAt" class="text-danger"></span>
+                <label asp-for="Shift" class="control-label"></label>
+                <input asp-for="Shift" class="form-control" />
+                <span asp-validation-for="Shift" class="text-danger"></span>
+                <small class="text-muted">Only required if role is Guard</small>
             </div>
+
+            <!-- House Number (Only for Residents) -->
             <div class="form-group">
-                <label asp-for="LastLogin" class="control-label"></label>
-                <input asp-for="LastLogin" class="form-control" />
-                <span asp-validation-for="LastLogin" class="text-danger"></span>
+                <label asp-for="HouseNumber" class="control-label"></label>
+                <input asp-for="HouseNumber" class="form-control" />
+                <span asp-validation-for="HouseNumber" class="text-danger"></span>
+                <small class="text-muted">Only required if role is Resident</small>
             </div>
+
             <div class="form-group">
-                <label asp-for="CreatedBy" class="control-label"></label>
-                <select asp-for="CreatedBy" class="form-control" asp-items="ViewBag.CreatedBy"></select>
-                <span asp-validation-for="CreatedBy" class="text-danger"></span>
+                <label asp-for="NewPassword" class="control-label"></label>
+                <input asp-for="NewPassword" type="password" class="form-control" />
+                <span asp-validation-for="NewPassword" class="text-danger"></span>
             </div>
             <div class="form-group">
                 <input type="submit" value="Save" class="btn btn-primary" />

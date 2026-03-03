@@ -121,17 +121,20 @@ namespace MgeniTrack.Controllers
         // GET: Users/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
             var user = await _context.Users.FindAsync(id);
+
             if (user == null)
             {
                 return NotFound();
             }
-            ViewData["CreatedBy"] = new SelectList(_context.Users, "UserId", "UserId", user.CreatedBy);
+
+            ViewBag.Roles = await _context.Roles
+                .Select(r => new SelectListItem
+                {
+                    Value = r.RoleId.ToString(),
+                    Text = r.RoleName
+                }).ToListAsync();
+
             return View(user);
         }
 
