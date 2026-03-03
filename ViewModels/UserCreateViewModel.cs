@@ -11,6 +11,6 @@
         public int SelectedRoleId { get; set; }
 
         public string? Shift { get; set; }  // For Guard
-        public required string HouseNumber { get; set; } // For Resident
+        public string? HouseNumber { get; set; } // For Resident
     }
 }
