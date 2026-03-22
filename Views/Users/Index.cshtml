@@ -4,159 +4,17 @@
     ViewData["Title"] = "Manage Users";
 }
 
-<style>
-    .page-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 1.5rem;
-    }
-
-        .page-header h2 {
-            font-size: 1.4rem;
-            font-weight: 700;
-            color: #1e293b;
-        }
-
-    .btn-new {
-        background: #2563eb;
-        color: #fff;
-        padding: 0.6rem 1.1rem;
-        border-radius: 8px;
-        text-decoration: none;
-        font-size: 0.88rem;
-        font-weight: 600;
-    }
-
-        .btn-new:hover {
-            background: #1d4ed8;
-            color: #fff;
-        }
-
-    @* Success alert *@
-    .alert-success {
-        background: #d1fae5;
-        border: 1px solid #a7f3d0;
-        color: #065f46;
-        padding: 0.75rem 1rem;
-        border-radius: 8px;
-        margin-bottom: 1rem;
-        font-size: 0.88rem;
-    }
-
-    .table-card {
-        background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 1px 6px rgba(0,0,0,0.07);
-        overflow: hidden;
-    }
-
-    .data-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 0.88rem;
-    }
-
-        .data-table thead {
-            background: #f8fafc;
-        }
-
-        .data-table th {
-            text-align: left;
-            padding: 0.75rem 1rem;
-            color: #64748b;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            font-weight: 600;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        .data-table td {
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid #f1f5f9;
-            color: #334155;
-            vertical-align: middle;
-        }
-
-        .data-table tr:last-child td {
-            border-bottom: none;
-        }
-
-        .data-table tr:hover td {
-            background: #f8fafc;
-        }
-
-    .avatar {
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        color: #fff;
-        font-size: 0.75rem;
-        font-weight: 700;
-        margin-right: 0.5rem;
-        vertical-align: middle;
-    }
-
-    .badge {
-        display: inline-block;
-        padding: 0.2rem 0.6rem;
-        border-radius: 20px;
-        font-size: 0.72rem;
-        font-weight: 600;
-    }
-
-    .badge-active {
-        background: #d1fae5;
-        color: #065f46;
-    }
-
-    .badge-inactive {
-        background: #fee2e2;
-        color: #991b1b;
-    }
-
-    .badge-role {
-        background: #dbeafe;
-        color: #1e40af;
-    }
-
-    .actions a {
-        font-size: 0.8rem;
-        text-decoration: none;
-        margin-right: 0.5rem;
-        font-weight: 500;
-    }
-
-        .actions a.edit {
-            color: #2563eb;
-        }
-
-        .actions a.detail {
-            color: #059669;
-        }
-
-        .actions a.delete {
-            color: #dc2626;
-        }
-
-        .actions a:hover {
-            text-decoration: underline;
-        }
-</style>
-
 <div class="page-header">
-    <h2>&#128100; Manage Users</h2>
-    <a asp-action="Create" class="btn-new">&#43; Add User</a>
+    <div class="page-header-left">
+        <h2>&#128100; Manage Users</h2>
+        <p>All registered system users</p>
+    </div>
+    <a asp-action="Create" class="btn btn-primary">&#43; Add User</a>
 </div>
 
 @if (TempData["Success"] != null)
 {
-    <div class="alert-success">&#9989; @TempData["Success"]</div>
+    <div class="alert alert-success">&#9989; @TempData["Success"]</div>
 }
 
 <div class="table-card">
@@ -179,28 +37,24 @@
                 var initials = (item.Firstname?.Length > 0 ? item.Firstname[0].ToString() : "") +
                 (item.Secondname?.Length > 0 ? item.Secondname[0].ToString() : "");
                 var roleName = item.UserRoles?.FirstOrDefault(ur => ur.UserStatus == "Active")?.Role?.RoleName ?? "—";
-
                 <tr>
                     <td>
-                        <span class="avatar">@initials.ToUpper()</span>
-                        <strong>@item.Firstname @item.Secondname</strong>
+                        <div style="display:flex;align-items:center;gap:0.6rem;">
+                            <div class="avatar avatar-sm">@initials.ToUpper()</div>
+                            <strong>@item.Firstname @item.Secondname</strong>
+                        </div>
                     </td>
                     <td>@item.Email</td>
                     <td>@(item.PhoneNumber ?? "—")</td>
                     <td><span class="badge badge-role">@roleName</span></td>
                     <td>@(item.Gender ?? "—")</td>
                     <td>
-                        @if (item.UserStatus == "Active")
-                        {
-                            <span class="badge badge-active">Active</span>
-                        }
-                        else
-                        {
-                            <span class="badge badge-inactive">Inactive</span>
-                        }
+                        <span class="badge @(item.UserStatus == "Active" ? "badge-active" : "badge-inactive")">
+                            @item.UserStatus
+                        </span>
                     </td>
                     <td>@(item.CreatedAt?.ToString("dd MMM yyyy") ?? "—")</td>
-                    <td class="actions">
+                    <td class="table-actions">
                         <a asp-action="Edit" asp-route-id="@item.UserId" class="edit">Edit</a>
                         <a asp-action="Details" asp-route-id="@item.UserId" class="detail">View</a>
                         <a asp-action="Delete" asp-route-id="@item.UserId" class="delete">Deactivate</a>

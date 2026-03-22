@@ -1,89 +1,109 @@
 ﻿@model IEnumerable<MgeniTrack.Models.VisitorInvitation>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Visitor Invitations";
+    bool isResident = User.IsInRole("Resident");
 }
 
-<h1>Index</h1>
+<div class="page-header">
+    <div class="page-header-left">
+        <h2>&#128203; Visitor Invitations</h2>
+        <p>@(isResident ? "Your invitations" : "All resident invitations")</p>
+    </div>
+    @if (isResident)
+    {
+        <a asp-action="Create" class="btn btn-primary">&#43; Invite Visitor</a>
+    }
+</div>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.VisitorName)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.VisitorPhone)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.VisitorEmail)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.PurposeOfVisit)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.ExpectedDate)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.InvitationToken)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.QrCodePath)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.VisitStatus)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.CreatedAt)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Resident)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.VisitorName)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.VisitorPhone)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.VisitorEmail)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.PurposeOfVisit)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.ExpectedDate)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.InvitationToken)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.QrCodePath)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.VisitStatus)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.CreatedAt)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Resident.ResidentId)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.InvitationId">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.InvitationId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.InvitationId">Delete</a>
-            </td>
-        </tr>
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">&#9989; @TempData["Success"]</div>
 }
-    </tbody>
-</table>
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">&#9888; @TempData["Error"]</div>
+}
+
+@if (!Model.Any())
+{
+    <div class="panel">
+        <div class="empty">
+            <span class="empty-icon">&#128203;</span>
+            @(isResident ? "You haven't created any invitations yet." : "No invitations found.")
+        </div>
+    </div>
+}
+else
+{
+    <div class="table-card">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Visitor</th>
+                    <th>Phone</th>
+                    <th>Purpose</th>
+                    @if (!isResident)
+                    {
+                        <th>Resident</th>
+                        <th>House</th>
+     }
+                    <th>Expected Date</th>
+                    <th>Token</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    var bc = item.VisitStatus switch
+                    {
+                        "Pending" => "badge-pending",
+                        "Arrived" => "badge-arrived",
+                        "Expired" => "badge-expired",
+                        "Cancelled" => "badge-cancelled",
+                        _ => "badge-gray"
+                    };
+                    <tr>
+                        <td><strong>@item.VisitorName</strong></td>
+                        <td>@(item.VisitorPhone ?? "—")</td>
+                        <td>@(item.PurposeOfVisit ?? "—")</td>
+                        @if (!isResident)
+                        {
+                            <td>@(item.Resident?.User?.Firstname) @(item.Resident?.User?.Secondname)</td>
+                            <td><span class="badge badge-blue">@(item.Resident?.HouseNumber ?? "—")</span></td>
+                        }
+                        <td>@(item.ExpectedDate?.ToString("dd MMM yyyy") ?? "—")</td>
+                        <td>
+                            <code style="background:var(--gray-100);padding:0.15rem 0.4rem;
+                                                 border-radius:4px;font-size:0.78rem;color:var(--blue-700);">
+                                @(item.InvitationToken ?? "—")
+                            </code>
+                        </td>
+                        <td><span class="badge @bc">@item.VisitStatus</span></td>
+                        <td>@(item.CreatedAt?.ToString("dd MMM yyyy") ?? "—")</td>
+                        <td class="table-actions">
+                            <a asp-action="Details" asp-route-id="@item.InvitationId" class="detail">View</a>
+                            @if (isResident && item.VisitStatus == "Pending")
+                            {
+                                <form asp-action="Cancel" asp-route-id="@item.InvitationId"
+                                      method="post" style="display:inline;"
+                                      onsubmit="return confirm('Cancel this invitation?')">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit"
+                                            style="background:none;border:none;cursor:pointer;
+                                                               font-size:0.78rem;font-weight:600;color:var(--danger);
+                                                               font-family:var(--font);">
+                                        Cancel
+                                    </button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

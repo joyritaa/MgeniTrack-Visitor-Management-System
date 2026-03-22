@@ -1,0 +1,130 @@
+﻿@model MgeniTrack.ViewModels.GuardCheckInViewModel
+
+@{
+    ViewData["Title"] = "Check In Visitor";
+}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <h2>&#9989; Check In Visitor</h2>
+        <p>Verify the visitor's identity and confirm entry</p>
+    </div>
+    <a asp-action="PendingList" class="btn btn-secondary">&#8592; Back to List</a>
+</div>
+
+<!-- Visitor summary banner - guard sees at a glance who is expected -->
+<div style="background: var(--blue-50); border: 1.5px solid var(--blue-200);
+            border-radius: var(--radius-lg); padding: 1.25rem 1.5rem;
+            margin-bottom: 1.5rem; display:flex; gap:1.5rem; flex-wrap:wrap;
+            align-items:center;">
+
+    <div style="flex:1; min-width:180px;">
+        <div style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.1em;
+                    color:var(--blue-500); font-weight:700; margin-bottom:0.2rem;">
+            Expected Visitor
+        </div>
+        <div style="font-size:1.2rem; font-weight:800; color:var(--blue-800);">
+            @Model.VisitorName
+        </div>
+        <div style="font-size:0.82rem; color:var(--gray-500); margin-top:0.2rem;">
+            @(Model.VisitorPhone ?? "No phone provided")
+        </div>
+    </div>
+
+    <div style="flex:1; min-width:140px;">
+        <div style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.1em;
+                    color:var(--blue-500); font-weight:700; margin-bottom:0.2rem;">
+            Visiting
+        </div>
+        <div style="font-size:1rem; font-weight:700; color:var(--blue-800);">
+            @Model.ResidentName
+        </div>
+        <div style="font-size:0.82rem; color:var(--gray-500);">
+            House @Model.HouseNumber
+        </div>
+    </div>
+
+    <div style="flex:1; min-width:140px;">
+        <div style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.1em;
+                    color:var(--blue-500); font-weight:700; margin-bottom:0.2rem;">
+            Purpose
+        </div>
+        <div style="font-size:0.9rem; font-weight:600; color:var(--blue-800);">
+            @Model.PurposeOfVisit
+        </div>
+        <div style="font-size:0.82rem; color:var(--gray-500);">
+            Expected: @(Model.ExpectedDate?.ToString("dd MMM yyyy") ?? "—")
+        </div>
+    </div>
+
+</div>
+
+<!-- Check-in form -->
+<div class="form-card">
+    <div style="font-size:0.78rem; font-weight:700; text-transform:uppercase;
+                letter-spacing:0.1em; color:var(--gray-400); margin-bottom:1.25rem;
+                padding-bottom:0.75rem; border-bottom:1px solid var(--gray-100);">
+        &#128274; Gate Verification Details
+    </div>
+
+    <form asp-action="CheckIn" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="InvitationId" />
+        <input type="hidden" asp-for="VisitorName" />
+        <input type="hidden" asp-for="VisitorPhone" />
+        <input type="hidden" asp-for="PurposeOfVisit" />
+        <input type="hidden" asp-for="HouseNumber" />
+        <input type="hidden" asp-for="ResidentName" />
+
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+        <!-- ID Number -->
+        <div class="form-group">
+            <label asp-for="IdNumber">Visitor ID / Passport Number</label>
+            <input asp-for="IdNumber" class="form-control"
+                   placeholder="Enter national ID or passport number" />
+            <span asp-validation-for="IdNumber" class="text-danger"></span>
+        </div>
+
+        <!-- Occupants + Car reg row -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+            <div class="form-group">
+                <label asp-for="NumberOfOccupants"></label>
+                <input asp-for="NumberOfOccupants" type="number"
+                       class="form-control" min="1" max="20" />
+                <span asp-validation-for="NumberOfOccupants" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="CarRegistration"></label>
+                <input asp-for="CarRegistration" class="form-control"
+                       placeholder="e.g. KCA 123A (optional)" />
+                <span asp-validation-for="CarRegistration" class="text-danger"></span>
+            </div>
+        </div>
+
+        <!-- Check-in method -->
+        <div class="form-group">
+            <label asp-for="CheckInMethod"></label>
+            <select asp-for="CheckInMethod" class="form-control">
+                <option value="Manual">Manual (written verification)</option>
+                <option value="QR">QR Code Scan</option>
+            </select>
+        </div>
+
+        <!-- Confirm button -->
+        <div style="display:flex; gap:0.75rem; margin-top:1rem;
+                    padding-top:1rem; border-top:1px solid var(--gray-100);">
+            <button type="submit" class="btn btn-primary" style="flex:1;">
+                &#9989; Confirm Check-In
+            </button>
+            <a asp-action="PendingList" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
+

@@ -1,0 +1,106 @@
+﻿@model IEnumerable<MgeniTrack.Models.VisitorInvitation>
+
+@{
+    ViewData["Title"] = "Verify Visitor";
+}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <h2>&#128737; Verify Visitor</h2>
+        <p>Search by visitor name, phone number, or invitation token</p>
+    </div>
+    <a asp-controller="GuardDashboard" asp-action="Index" class="btn btn-secondary">
+        &#8592; Dashboard
+    </a>
+</div>
+
+<!-- Search bar -->
+<div class="panel" style="padding:1rem 1.35rem;">
+    <form asp-action="PendingList" method="get"
+          style="display:flex; gap:0.75rem; align-items:center;">
+        <input type="text" name="search" value="@ViewBag.Search"
+               class="form-control"
+               placeholder="Search by name, phone or token..."
+               style="max-width:380px;" />
+        <button type="submit" class="btn btn-primary">&#128269; Search</button>
+        @if (!string.IsNullOrEmpty(ViewBag.Search as string))
+        {
+            <a asp-action="PendingList" class="btn btn-secondary">&#10005; Clear</a>
+        }
+    </form>
+</div>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">&#9888; @TempData["Error"]</div>
+}
+
+@if (!Model.Any())
+{
+    <div class="panel">
+        <div class="empty">
+            <span class="empty-icon">&#9989;</span>
+            @(string.IsNullOrEmpty(ViewBag.Search as string)
+                    ? "No pending invitations for today or upcoming dates."
+                    : "No invitations match your search.")
+    </div>
+</div>
+}
+else
+{
+    <div class="table-card">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Visitor</th>
+                    <th>Phone</th>
+                    <th>Purpose</th>
+                    <th>Resident</th>
+                    <th>House</th>
+                    <th>Expected</th>
+                    <th>Token</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    var isToday = item.ExpectedDate == DateOnly.FromDateTime(DateTime.Today);
+                    <tr>
+                        <td>
+                            <strong>@item.VisitorName</strong>
+                            @if (isToday)
+                            {
+                                <span class="badge badge-green" style="margin-left:0.4rem;
+                                                  font-size:0.65rem;">Today</span>
+                            }
+                        </td>
+                        <td>@(item.VisitorPhone ?? "—")</td>
+                        <td>@(item.PurposeOfVisit ?? "—")</td>
+                        <td>@(item.Resident?.User?.Firstname) @(item.Resident?.User?.Secondname)</td>
+                        <td>
+                            <span class="badge badge-blue">
+                                @(item.Resident?.HouseNumber ?? "—")
+                            </span>
+                        </td>
+                        <td>@(item.ExpectedDate?.ToString("dd MMM yyyy") ?? "—")</td>
+                        <td>
+                            <code style="background:var(--gray-100); padding:0.15rem 0.4rem;
+                                                 border-radius:4px; font-size:0.78rem; color:var(--blue-700);">
+                                @(item.InvitationToken ?? "—")
+                            </code>
+                        </td>
+                        <td>
+                            <a asp-action="CheckIn" asp-route-id="@item.InvitationId"
+                               class="btn btn-primary"
+                               style="padding:0.4rem 0.9rem; font-size:0.8rem;">
+                                &#9989; Check In
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+

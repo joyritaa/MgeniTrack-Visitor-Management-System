@@ -1,0 +1,85 @@
+﻿@model MgeniTrack.Models.Visit
+
+@{
+    ViewData["Title"] = "Check Out Visitor";
+    var duration = Model.TimeIn.HasValue
+        ? (int)(DateTime.Now - Model.TimeIn.Value).TotalMinutes : 0;
+    var durationText = duration >= 60
+        ? $"{duration / 60}h {duration % 60}m" : $"{duration}m";
+}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <h2>&#128682; Check Out Visitor</h2>
+        <p>Confirm this visitor is leaving the premises</p>
+    </div>
+    <a asp-controller="GuardDashboard" asp-action="Index" class="btn btn-secondary">
+        &#8592; Dashboard
+    </a>
+</div>
+
+<!-- Visitor summary -->
+<div style="background:var(--warning-light); border:1.5px solid #fcd34d;
+            border-radius:var(--radius-lg); padding:1.25rem 1.5rem;
+            margin-bottom:1.5rem; display:flex; gap:1.5rem; flex-wrap:wrap;">
+
+    <div style="flex:1; min-width:160px;">
+        <div style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.1em;
+                    color:var(--warning); font-weight:700; margin-bottom:0.2rem;">
+            Visitor
+        </div>
+        <div style="font-size:1.2rem; font-weight:800; color:var(--gray-800);">
+            @(Model.Visitor?.FullName ?? "—")
+        </div>
+    </div>
+
+    <div style="flex:1; min-width:120px;">
+        <div style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.1em;
+                    color:var(--warning); font-weight:700; margin-bottom:0.2rem;">
+            House
+        </div>
+        <div style="font-size:1rem; font-weight:700; color:var(--gray-800);">
+            @(Model.HouseNumber ?? "—")
+        </div>
+    </div>
+
+    <div style="flex:1; min-width:120px;">
+        <div style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.1em;
+                    color:var(--warning); font-weight:700; margin-bottom:0.2rem;">
+            Time In
+        </div>
+        <div style="font-size:1rem; font-weight:700; color:var(--gray-800);">
+            @(Model.TimeIn?.ToString("HH:mm") ?? "—")
+        </div>
+    </div>
+
+    <div style="flex:1; min-width:120px;">
+        <div style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.1em;
+                    color:var(--warning); font-weight:700; margin-bottom:0.2rem;">
+            Time Inside
+        </div>
+        <div style="font-size:1rem; font-weight:700; color:var(--gray-800);">
+            @durationText
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation -->
+<div class="form-card" style="max-width:400px;">
+    <p style="color:var(--gray-600); font-size:0.9rem; margin-bottom:1.5rem;">
+        Are you sure you want to check out
+        <strong>@(Model.Visitor?.FullName ?? "this visitor")</strong>?
+        Their exit time will be recorded as <strong>@DateTime.Now.ToString("HH:mm")</strong>.
+    </p>
+
+    <form asp-action="CheckOut" asp-route-visitId="@Model.VisitId" method="post">
+        @Html.AntiForgeryToken()
+        <div style="display:flex; gap:0.75rem;">
+            <button type="submit" class="btn btn-primary" style="flex:1;">
+                &#128682; Confirm Check-Out
+            </button>
+            <a asp-controller="GuardDashboard" asp-action="Index"
+               class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>

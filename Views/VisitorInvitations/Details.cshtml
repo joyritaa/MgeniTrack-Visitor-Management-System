@@ -1,78 +1,134 @@
 ﻿@model MgeniTrack.Models.VisitorInvitation
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Invitation Details";
+    var bc = Model.VisitStatus switch
+    {
+        "Pending" => "badge-pending",
+        "Arrived" => "badge-arrived",
+        "Expired" => "badge-expired",
+        "Cancelled" => "badge-cancelled",
+        _ => "badge-gray"
+    };
 }
 
-<h1>Details</h1>
-
-<div>
-    <h4>VisitorInvitation</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.VisitorName)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.VisitorName)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.VisitorPhone)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.VisitorPhone)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.VisitorEmail)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.VisitorEmail)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.PurposeOfVisit)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.PurposeOfVisit)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.ExpectedDate)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.ExpectedDate)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.InvitationToken)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.InvitationToken)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.QrCodePath)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.QrCodePath)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.VisitStatus)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.VisitStatus)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CreatedAt)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CreatedAt)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Resident)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Resident.ResidentId)
-        </dd>
-    </dl>
+<div class="page-header">
+    <div class="page-header-left">
+        <h2>&#128140; Invitation Details</h2>
+        <p>Created @(Model.CreatedAt?.ToString("dd MMMM yyyy 'at' HH:mm"))</p>
+    </div>
+    <a asp-action="Index" class="btn btn-secondary">&#8592; Back</a>
 </div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.InvitationId">Edit</a> |
-    <a asp-action="Index">Back to List</a>
+
+<!-- Token card - most important thing to show -->
+<div style="background: linear-gradient(135deg, var(--blue-700), var(--blue-500));
+            border-radius: var(--radius-lg); padding: 1.5rem 1.75rem;
+            margin-bottom: 1.5rem; color:#fff;
+            box-shadow: 0 4px 18px rgba(37,99,235,0.3);">
+    <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.12em;
+                opacity:0.75; margin-bottom:0.35rem;">
+        Invitation Token — share with your visitor
+    </div>
+    <div style="font-size:2rem; font-weight:800; letter-spacing:0.15em; font-family:monospace;">
+        @Model.InvitationToken
+    </div>
+    <div style="font-size:0.78rem; opacity:0.7; margin-top:0.5rem;">
+        The guard will use this token to verify and check in your visitor.
+    </div>
+</div>
+
+<div class="panels-2col">
+    <!-- Visitor info -->
+    <div class="panel">
+        <div class="panel-title">&#128100; Visitor Information</div>
+
+        <table style="width:100%; font-size:0.88rem; border-collapse:collapse;">
+            <tr>
+                <td style="padding:0.6rem 0; color:var(--gray-400); width:40%; font-weight:600;
+                           font-size:0.75rem; text-transform:uppercase; letter-spacing:0.06em;">
+                    Full Name
+                </td>
+                <td style="padding:0.6rem 0; color:var(--gray-800); font-weight:600;">
+                    @Model.VisitorName
+                </td>
+            </tr>
+            <tr style="border-top:1px solid var(--gray-100);">
+                <td style="padding:0.6rem 0; color:var(--gray-400);
+                           font-size:0.75rem; text-transform:uppercase; letter-spacing:0.06em; font-weight:600;">
+                    Phone
+                </td>
+                <td style="padding:0.6rem 0; color:var(--gray-700);">
+                    @(Model.VisitorPhone ?? "—")
+                </td>
+            </tr>
+            <tr style="border-top:1px solid var(--gray-100);">
+                <td style="padding:0.6rem 0; color:var(--gray-400);
+                           font-size:0.75rem; text-transform:uppercase; letter-spacing:0.06em; font-weight:600;">
+                    Email
+                </td>
+                <td style="padding:0.6rem 0; color:var(--gray-700);">
+                    @(Model.VisitorEmail ?? "—")
+                </td>
+            </tr>
+            <tr style="border-top:1px solid var(--gray-100);">
+                <td style="padding:0.6rem 0; color:var(--gray-400);
+                           font-size:0.75rem; text-transform:uppercase; letter-spacing:0.06em; font-weight:600;">
+                    Purpose
+                </td>
+                <td style="padding:0.6rem 0; color:var(--gray-700);">
+                    @(Model.PurposeOfVisit ?? "—")
+                </td>
+            </tr>
+            <tr style="border-top:1px solid var(--gray-100);">
+                <td style="padding:0.6rem 0; color:var(--gray-400);
+                           font-size:0.75rem; text-transform:uppercase; letter-spacing:0.06em; font-weight:600;">
+                    Expected Date
+                </td>
+                <td style="padding:0.6rem 0; color:var(--gray-700);">
+                    @(Model.ExpectedDate?.ToString("dd MMMM yyyy") ?? "—")
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Status + host info -->
+    <div class="panel">
+        <div class="panel-title">&#128274; Status & Host</div>
+
+        <div style="margin-bottom:1rem;">
+            <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;
+                        color:var(--gray-400); margin-bottom:0.35rem;">
+                Current Status
+            </div>
+            <span class="badge @bc" style="font-size:0.85rem; padding:0.35rem 0.9rem;">
+                @Model.VisitStatus
+            </span>
+        </div>
+
+        <div style="border-top:1px solid var(--gray-100); padding-top:1rem;">
+            <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;
+                        color:var(--gray-400); margin-bottom:0.5rem;">
+                Host / Resident
+            </div>
+            <div style="font-size:0.9rem; font-weight:600; color:var(--gray-800);">
+                @Model.Resident?.User?.Firstname @Model.Resident?.User?.Secondname
+            </div>
+            <div style="font-size:0.82rem; color:var(--gray-400); margin-top:0.15rem;">
+                House @(Model.Resident?.HouseNumber ?? "—")
+            </div>
+        </div>
+
+        @if (Model.VisitStatus == "Pending")
+        {
+            <div style="margin-top:1.25rem;">
+                <form asp-action="Cancel" asp-route-id="@Model.InvitationId" method="post"
+                      onsubmit="return confirm('Are you sure you want to cancel this invitation?')">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-danger" style="width:100%;">
+                        &#10005; Cancel Invitation
+                    </button>
+                </form>
+            </div>
+        }
+    </div>
 </div>

@@ -1,67 +1,83 @@
-﻿@model MgeniTrack.Models.VisitorInvitation
+﻿@model MgeniTrack.ViewModels.InvitationCreateViewModel
 
 @{
-    ViewData["Title"] = "Create";
+    ViewData["Title"] = "Invite a Visitor";
 }
 
-<h1>Create</h1>
+<div class="page-header">
+    <div class="page-header-left">
+        <h2>&#128140; Invite a Visitor</h2>
+        <p>Fill in your visitor's details. A unique access token will be generated for them.</p>
+    </div>
+    <a asp-action="Index" class="btn btn-secondary">&#8592; My Invitations</a>
+</div>
 
-<h4>VisitorInvitation</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Create">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+<div class="form-card">
+    <form asp-action="Create" method="post">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+        <!-- Visitor Name -->
+        <div class="form-group">
+            <label asp-for="VisitorName"></label>
+            <input asp-for="VisitorName" class="form-control"
+                   placeholder="e.g. John Kamau" />
+            <span asp-validation-for="VisitorName" class="text-danger"></span>
+        </div>
+
+        <!-- Phone + Email row -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
             <div class="form-group">
-                <label asp-for="ResidentId" class="control-label"></label>
-                <select asp-for="ResidentId" class ="form-control" asp-items="ViewBag.ResidentId"></select>
-            </div>
-            <div class="form-group">
-                <label asp-for="VisitorName" class="control-label"></label>
-                <input asp-for="VisitorName" class="form-control" />
-                <span asp-validation-for="VisitorName" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="VisitorPhone" class="control-label"></label>
-                <input asp-for="VisitorPhone" class="form-control" />
+                <label asp-for="VisitorPhone"></label>
+                <input asp-for="VisitorPhone" class="form-control"
+                       placeholder="e.g. 0712 345 678" />
                 <span asp-validation-for="VisitorPhone" class="text-danger"></span>
             </div>
             <div class="form-group">
-                <label asp-for="VisitorEmail" class="control-label"></label>
-                <input asp-for="VisitorEmail" class="form-control" />
+                <label asp-for="VisitorEmail"></label>
+                <input asp-for="VisitorEmail" class="form-control"
+                       placeholder="visitor@email.com" />
                 <span asp-validation-for="VisitorEmail" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="PurposeOfVisit" class="control-label"></label>
-                <input asp-for="PurposeOfVisit" class="form-control" />
-                <span asp-validation-for="PurposeOfVisit" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="ExpectedDate" class="control-label"></label>
-                <input asp-for="ExpectedDate" class="form-control" />
-                <span asp-validation-for="ExpectedDate" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="InvitationToken" class="control-label"></label>
-                <input asp-for="InvitationToken" class="form-control" />
-                <span asp-validation-for="InvitationToken" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="QrCodePath" class="control-label"></label>
-                <input asp-for="QrCodePath" class="form-control" />
-                <span asp-validation-for="QrCodePath" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
-            </div>
-        </form>
-    </div>
-</div>
+        </div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
+        <!-- Purpose -->
+        <div class="form-group">
+            <label asp-for="PurposeOfVisit"></label>
+            <select asp-for="PurposeOfVisit" class="form-control">
+                <option value="">— Select purpose —</option>
+                <option>Personal Visit</option>
+                <option>Family</option>
+                <option>Delivery</option>
+                <option>Maintenance / Repair</option>
+                <option>Business</option>
+                <option>Other</option>
+            </select>
+            <span asp-validation-for="PurposeOfVisit" class="text-danger"></span>
+        </div>
+
+        <!-- Expected Date -->
+        <div class="form-group">
+            <label asp-for="ExpectedDate"></label>
+            <input asp-for="ExpectedDate" type="date" class="form-control"
+                   min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+            <span asp-validation-for="ExpectedDate" class="text-danger"></span>
+        </div>
+
+        <!-- Info box -->
+        <div class="alert alert-info" style="font-size:0.82rem; margin-bottom:1.25rem;">
+            &#128274; A unique invitation token will be generated and shown after submission.
+            Your visitor will use this token or QR code at the gate for fast check-in.
+        </div>
+
+        <div style="display:flex; gap:0.75rem; margin-top:0.5rem;">
+            <button type="submit" class="btn btn-primary">&#10003; Send Invitation</button>
+            <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }

@@ -25,7 +25,7 @@ public partial class Visitor
 
     public int InvitedViaInvitationId { get; set; }
 
-    public required virtual VisitorInvitation InvitedViaInvitation { get; set; }
+    public virtual VisitorInvitation? InvitedViaInvitation { get; set; }
 
     public virtual ICollection<Visit> Visits { get; set; } = new List<Visit>();
 }

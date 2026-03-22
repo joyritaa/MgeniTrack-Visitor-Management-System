@@ -2,259 +2,13 @@
     ViewData["Title"] = "Manager Dashboard";
 }
 
-<style>
-    .dash-header {
-        margin-bottom: 1.75rem;
-    }
-
-        .dash-header h2 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #1e293b;
-        }
-
-        .dash-header p {
-            color: #64748b;
-            font-size: 0.9rem;
-        }
-
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-        gap: 1rem;
-        margin-bottom: 1.75rem;
-    }
-
-    .stat-card {
-        background: #fff;
-        border-radius: 12px;
-        padding: 1.25rem;
-        border-left: 4px solid transparent;
-        box-shadow: 0 1px 6px rgba(0,0,0,0.07);
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-    }
-
-        .stat-card.green {
-            border-color: #10b981;
-        }
-
-        .stat-card.blue {
-            border-color: #3b82f6;
-        }
-
-        .stat-card.orange {
-            border-color: #f59e0b;
-        }
-
-        .stat-card.teal {
-            border-color: #14b8a6;
-        }
-
-    .stat-icon {
-        width: 42px;
-        height: 42px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.2rem;
-    }
-
-    .green .stat-icon {
-        background: #d1fae5;
-    }
-
-    .blue .stat-icon {
-        background: #dbeafe;
-    }
-
-    .orange .stat-icon {
-        background: #fef3c7;
-    }
-
-    .teal .stat-icon {
-        background: #ccfbf1;
-    }
-
-    .stat-info .value {
-        font-size: 1.75rem;
-        font-weight: 700;
-        color: #0f172a;
-    }
-
-    .stat-info .label {
-        font-size: 0.75rem;
-        color: #64748b;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-
-    .quick-actions {
-        display: flex;
-        gap: 0.75rem;
-        margin-bottom: 1.75rem;
-        flex-wrap: wrap;
-    }
-
-    .btn-action {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.7rem 1.25rem;
-        border-radius: 10px;
-        font-weight: 600;
-        font-size: 0.88rem;
-        text-decoration: none;
-        transition: all 0.2s;
-    }
-
-    .btn-primary-action {
-        background: #2563eb;
-        color: #fff;
-    }
-
-        .btn-primary-action:hover {
-            background: #1d4ed8;
-            color: #fff;
-        }
-
-    .btn-secondary-action {
-        background: #f1f5f9;
-        color: #334155;
-    }
-
-        .btn-secondary-action:hover {
-            background: #e2e8f0;
-            color: #334155;
-        }
-
-    .panels {
-        display: grid;
-        grid-template-columns: 3fr 2fr;
-        gap: 1.25rem;
-    }
-
-    @@media (max-width: 900px) {
-        .panels {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    .panel {
-        background: #fff;
-        border-radius: 12px;
-        padding: 1.25rem;
-        box-shadow: 0 1px 6px rgba(0,0,0,0.07);
-    }
-
-    .panel-title {
-        font-size: 0.8rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: #64748b;
-        margin-bottom: 1rem;
-        padding-bottom: 0.75rem;
-        border-bottom: 1px solid #f1f5f9;
-    }
-
-    .data-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 0.85rem;
-    }
-
-        .data-table th {
-            text-align: left;
-            padding: 0.5rem 0.75rem;
-            color: #94a3b8;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            font-weight: 600;
-        }
-
-        .data-table td {
-            padding: 0.65rem 0.75rem;
-            border-top: 1px solid #f8fafc;
-            color: #334155;
-        }
-
-        .data-table tr:hover td {
-            background: #f8fafc;
-        }
-
-    .badge {
-        display: inline-block;
-        padding: 0.2rem 0.6rem;
-        border-radius: 20px;
-        font-size: 0.72rem;
-        font-weight: 600;
-    }
-
-    .badge-pending {
-        background: #fef3c7;
-        color: #92400e;
-    }
-
-    .badge-arrived {
-        background: #d1fae5;
-        color: #065f46;
-    }
-
-    .badge-expired {
-        background: #f1f5f9;
-        color: #64748b;
-    }
-
-    .badge-cancelled {
-        background: #fee2e2;
-        color: #991b1b;
-    }
-
-    .resident-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0.65rem 0;
-        border-top: 1px solid #f8fafc;
-    }
-
-    .res-name {
-        font-size: 0.88rem;
-        font-weight: 600;
-        color: #1e293b;
-    }
-
-    .res-meta {
-        font-size: 0.75rem;
-        color: #94a3b8;
-    }
-
-    .res-house {
-        background: #dbeafe;
-        color: #1e40af;
-        padding: 0.2rem 0.65rem;
-        border-radius: 6px;
-        font-size: 0.8rem;
-        font-weight: 600;
-    }
-
-    .empty {
-        text-align: center;
-        padding: 2rem;
-        color: #94a3b8;
-        font-size: 0.85rem;
-    }
-</style>
-
-<div class="dash-header">
-    <h2>&#127963; Property Manager Dashboard</h2>
-    <p>Manage residents and visitor invitations — @DateTime.Now.ToString("dddd, dd MMMM yyyy")</p>
+<div class="page-header">
+    <div class="page-header-left">
+        <h2>&#127963; Property Manager Dashboard</h2>
+        <p>Manage residents and visitor invitations — @DateTime.Now.ToString("dddd, dd MMMM yyyy")</p>
+    </div>
 </div>
 
-<!-- Stats -->
 <div class="stats-grid">
     <div class="stat-card blue">
         <div class="stat-icon">&#127968;</div>
@@ -286,15 +40,12 @@
     </div>
 </div>
 
-<!-- Quick Actions -->
 <div class="quick-actions">
-    <a asp-controller="Residents" asp-action="Index" class="btn-action btn-secondary-action">&#128101; All Residents</a>
-    <a asp-controller="VisitorInvitations" asp-action="Index" class="btn-action btn-secondary-action">&#128203; All Invitations</a>
+    <a asp-controller="Residents" asp-action="Index" class="btn btn-secondary">&#128101; All Residents</a>
+    <a asp-controller="VisitorInvitations" asp-action="Index" class="btn btn-secondary">&#128203; All Invitations</a>
 </div>
 
-<!-- Panels -->
-<div class="panels">
-    <!-- Recent Invitations -->
+<div class="panels-2col">
     <div class="panel">
         <div class="panel-title">&#128337; Recent Invitations</div>
         @{
@@ -304,17 +55,12 @@
         {
             <table class="data-table">
                 <thead>
-                    <tr>
-                        <th>Visitor</th>
-                        <th>Resident</th>
-                        <th>Expected</th>
-                        <th>Status</th>
-                    </tr>
+                    <tr><th>Visitor</th><th>Resident</th><th>Expected</th><th>Status</th></tr>
                 </thead>
                 <tbody>
                     @foreach (var inv in invitations)
                     {
-                        var badgeClass = inv.VisitStatus switch
+                        var bc = inv.VisitStatus switch
                         {
                             "Pending" => "badge-pending",
                             "Arrived" => "badge-arrived",
@@ -326,7 +72,7 @@
                             <td><strong>@inv.VisitorName</strong></td>
                             <td>@(inv.Resident?.User?.Firstname ?? "—")</td>
                             <td>@(inv.ExpectedDate?.ToString("dd MMM") ?? "—")</td>
-                            <td><span class="badge @badgeClass">@inv.VisitStatus</span></td>
+                            <td><span class="badge @bc">@inv.VisitStatus</span></td>
                         </tr>
                     }
                 </tbody>
@@ -339,7 +85,6 @@
         }
     </div>
 
-    <!-- Residents -->
     <div class="panel">
         <div class="panel-title">&#127968; Residents</div>
         @{
