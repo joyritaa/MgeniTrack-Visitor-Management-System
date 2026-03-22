@@ -1,8 +1,354 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
-@{
+﻿@{
     ViewData["Title"] = "Admin Dashboard";
 }
-<h2>Admin Dashboard</h2>
-<p>Welcome to the Admin Panel.</p>
+
+<style>
+    .dash-header {
+        margin-bottom: 1.75rem;
+    }
+
+        .dash-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        .dash-header p {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin: 0.25rem 0 0;
+        }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.75rem;
+    }
+
+    .stat-card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 1.25rem 1.5rem;
+        border-left: 4px solid transparent;
+        box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+        .stat-card.green {
+            border-color: #10b981;
+        }
+
+        .stat-card.blue {
+            border-color: #3b82f6;
+        }
+
+        .stat-card.orange {
+            border-color: #f59e0b;
+        }
+
+        .stat-card.red {
+            border-color: #ef4444;
+        }
+
+        .stat-card.purple {
+            border-color: #8b5cf6;
+        }
+
+        .stat-card.teal {
+            border-color: #14b8a6;
+        }
+
+    .stat-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        flex-shrink: 0;
+    }
+
+    .green .stat-icon {
+        background: #d1fae5;
+    }
+
+    .blue .stat-icon {
+        background: #dbeafe;
+    }
+
+    .orange .stat-icon {
+        background: #fef3c7;
+    }
+
+    .red .stat-icon {
+        background: #fee2e2;
+    }
+
+    .purple .stat-icon {
+        background: #ede9fe;
+    }
+
+    .teal .stat-icon {
+        background: #ccfbf1;
+    }
+
+    .stat-info .value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        line-height: 1;
+        color: #0f172a;
+    }
+
+    .stat-info .label {
+        font-size: 0.78rem;
+        color: #64748b;
+        margin-top: 0.2rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .panels {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 1.25rem;
+    }
+
+    @@media (max-width: 900px) {
+        .panels {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .panel {
+        background: #fff;
+        border-radius: 12px;
+        padding: 1.25rem;
+        box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+    }
+
+    .panel-title {
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #64748b;
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+    }
+
+        .data-table th {
+            text-align: left;
+            padding: 0.5rem 0.75rem;
+            color: #94a3b8;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+
+        .data-table td {
+            padding: 0.65rem 0.75rem;
+            border-top: 1px solid #f8fafc;
+            color: #334155;
+        }
+
+        .data-table tr:hover td {
+            background: #f8fafc;
+        }
+
+    .badge {
+        display: inline-block;
+        padding: 0.2rem 0.6rem;
+        border-radius: 20px;
+        font-size: 0.72rem;
+        font-weight: 600;
+    }
+
+    .badge-in {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .badge-out {
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    .user-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.6rem 0;
+        border-top: 1px solid #f8fafc;
+    }
+
+    .avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 0.8rem;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+
+    .user-info .name {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .user-info .role {
+        font-size: 0.75rem;
+        color: #94a3b8;
+    }
+
+    .empty {
+        text-align: center;
+        padding: 2rem;
+        color: #94a3b8;
+        font-size: 0.85rem;
+    }
+</style>
+
+<div class="dash-header">
+    <h2>&#128274; Admin Dashboard</h2>
+    <p>System overview — @DateTime.Now.ToString("dddd, dd MMMM yyyy")</p>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid">
+    <div class="stat-card green">
+        <div class="stat-icon">&#128100;</div>
+        <div class="stat-info">
+            <div class="value">@ViewBag.TotalUsers</div>
+            <div class="label">Active Users</div>
+        </div>
+    </div>
+    <div class="stat-card blue">
+        <div class="stat-icon">&#128101;</div>
+        <div class="stat-info">
+            <div class="value">@ViewBag.TotalResidents</div>
+            <div class="label">Residents</div>
+        </div>
+    </div>
+    <div class="stat-card orange">
+        <div class="stat-icon">&#128737;</div>
+        <div class="stat-info">
+            <div class="value">@ViewBag.TotalGuards</div>
+            <div class="label">Active Guards</div>
+        </div>
+    </div>
+    <div class="stat-card teal">
+        <div class="stat-icon">&#128118;</div>
+        <div class="stat-info">
+            <div class="value">@ViewBag.TotalVisitors</div>
+            <div class="label">Total Visitors</div>
+        </div>
+    </div>
+    <div class="stat-card purple">
+        <div class="stat-icon">&#128197;</div>
+        <div class="stat-info">
+            <div class="value">@ViewBag.TotalVisitsToday</div>
+            <div class="label">Visits Today</div>
+        </div>
+    </div>
+    <div class="stat-card red">
+        <div class="stat-icon">&#128682;</div>
+        <div class="stat-info">
+            <div class="value">@ViewBag.ActiveVisits</div>
+            <div class="label">Currently Inside</div>
+        </div>
+    </div>
+</div>
+
+<!-- Panels -->
+<div class="panels">
+    <!-- Recent Visits -->
+    <div class="panel">
+        <div class="panel-title">&#128337; Recent Visits</div>
+        @{
+            var recentVisits = ViewBag.RecentVisits as List<MgeniTrack.Models.Visit>;
+        }
+        @if (recentVisits != null && recentVisits.Any())
+        {
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Visitor</th>
+                        <th>House</th>
+                        <th>Time In</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var v in recentVisits)
+                    {
+                        <tr>
+                            <td>@(v.Visitor?.FullName ?? "—")</td>
+                            <td>@(v.HouseNumber ?? "—")</td>
+                            <td>@(v.TimeIn?.ToString("dd MMM, HH:mm") ?? "—")</td>
+                            <td>
+                                @if (v.VisitStatus == "CheckedIn")
+                                {
+                                    <span class="badge badge-in">&#9679; Inside</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-out">Checked Out</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <div class="empty">No visits recorded yet.</div>
+        }
+    </div>
+
+    <!-- Recently Added Users -->
+    <div class="panel">
+        <div class="panel-title">&#127381; New Users</div>
+        @{
+            var recentUsers = ViewBag.RecentUsers as List<MgeniTrack.Models.User>;
+        }
+        @if (recentUsers != null && recentUsers.Any())
+        {
+            @foreach (var u in recentUsers)
+            {
+                var initials = (u.Firstname?.Length > 0 ? u.Firstname[0].ToString() : "") +
+                (u.Secondname?.Length > 0 ? u.Secondname[0].ToString() : "");
+                var roleName = u.UserRoles?.FirstOrDefault(ur => ur.UserStatus == "Active")?.Role?.RoleName ?? "—";
+                <div class="user-row">
+                    <div class="avatar">@initials.ToUpper()</div>
+                    <div class="user-info">
+                        <div class="name">@u.Firstname @u.Secondname</div>
+                        <div class="role">@roleName</div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="empty">No users yet.</div>
+        }
+    </div>
+</div>

@@ -1,8 +1,295 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
-@{
-    ViewData["Title"] = "Guard Dashboard";
+﻿@{
+    ViewData["Title"] = "My Dashboard";
 }
-<h2>Resident Dashboard</h2>
-<p>Welcome to the Resident Panel.</p>
+
+<style>
+    .dash-header {
+        margin-bottom: 1.75rem;
+    }
+
+        .dash-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .dash-header p {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+    .house-banner {
+        background: linear-gradient(135deg, #1e40af, #3b82f6);
+        border-radius: 14px;
+        padding: 1.25rem 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+        color: #fff;
+    }
+
+        .house-banner .label {
+            font-size: 0.75rem;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .house-banner .house-num {
+            font-size: 1.8rem;
+            font-weight: 800;
+            line-height: 1.1;
+        }
+
+    .house-icon {
+        font-size: 2.5rem;
+        opacity: 0.6;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 1.25rem;
+        border-left: 4px solid transparent;
+        box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+        .stat-card.green {
+            border-color: #10b981;
+        }
+
+        .stat-card.blue {
+            border-color: #3b82f6;
+        }
+
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+    }
+
+    .green .stat-icon {
+        background: #d1fae5;
+    }
+
+    .blue .stat-icon {
+        background: #dbeafe;
+    }
+
+    .stat-info .value {
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .stat-info .label {
+        font-size: 0.75rem;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .quick-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-bottom: 1.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.7rem 1.25rem;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.88rem;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .btn-primary-action {
+        background: #2563eb;
+        color: #fff;
+    }
+
+        .btn-primary-action:hover {
+            background: #1d4ed8;
+            color: #fff;
+        }
+
+    .btn-secondary-action {
+        background: #f1f5f9;
+        color: #334155;
+    }
+
+        .btn-secondary-action:hover {
+            background: #e2e8f0;
+            color: #334155;
+        }
+
+    .panel {
+        background: #fff;
+        border-radius: 12px;
+        padding: 1.25rem;
+        box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+    }
+
+    .panel-title {
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #64748b;
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .inv-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.65rem 0;
+        border-top: 1px solid #f8fafc;
+    }
+
+    .inv-name {
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .inv-meta {
+        font-size: 0.75rem;
+        color: #94a3b8;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 0.2rem 0.6rem;
+        border-radius: 20px;
+        font-size: 0.72rem;
+        font-weight: 600;
+    }
+
+    .badge-pending {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .badge-arrived {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .badge-expired {
+        background: #f1f5f9;
+        color: #64748b;
+    }
+
+    .badge-cancelled {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .empty {
+        text-align: center;
+        padding: 2rem;
+        color: #94a3b8;
+        font-size: 0.85rem;
+    }
+</style>
+
+<div class="dash-header">
+    <h2>&#127968; My Dashboard</h2>
+    <p>Manage your visitors and invitations</p>
+</div>
+
+<!-- House Banner -->
+<div class="house-banner">
+    <div>
+        <div class="label">Your Unit</div>
+        <div class="house-num">House @ViewBag.HouseNumber</div>
+    </div>
+    <div class="house-icon">&#127968;</div>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid">
+    <div class="stat-card blue">
+        <div class="stat-icon">&#128140;</div>
+        <div class="stat-info">
+            <div class="value">@ViewBag.TotalInvitations</div>
+            <div class="label">Total Invitations</div>
+        </div>
+    </div>
+    <div class="stat-card green">
+        <div class="stat-icon">&#128118;</div>
+        <div class="stat-info">
+            <div class="value">@ViewBag.ActiveVisitors</div>
+            <div class="label">Visitors Arrived</div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="quick-actions">
+    <a asp-controller="VisitorInvitations" asp-action="Create" class="btn-action btn-primary-action">
+        &#43; Invite a Visitor
+    </a>
+    <a asp-controller="VisitorInvitations" asp-action="Index" class="btn-action btn-secondary-action">
+        &#128203; My Invitations
+    </a>
+</div>
+
+<!-- Recent Invitations -->
+<div class="panel">
+    <div class="panel-title">&#128337; Recent Invitations</div>
+    @{
+        var recent = ViewBag.RecentVisits as List<MgeniTrack.Models.VisitorInvitation>;
+    }
+    @if (recent != null && recent.Any())
+    {
+        @foreach (var inv in recent)
+        {
+            var badgeClass = inv.VisitStatus switch
+            {
+                "Pending" => "badge-pending",
+                "Arrived" => "badge-arrived",
+                "Expired" => "badge-expired",
+                "Cancelled" => "badge-cancelled",
+                _ => "badge-pending"
+            };
+            <div class="inv-row">
+                <div>
+                    <div class="inv-name">@inv.VisitorName</div>
+                    <div class="inv-meta">
+                        @inv.PurposeOfVisit &nbsp;•&nbsp;
+                        @(inv.ExpectedDate?.ToString("dd MMM yyyy") ?? "No date set")
+                    </div>
+                </div>
+                <span class="badge @badgeClass">@inv.VisitStatus</span>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="empty">You haven't created any invitations yet.</div>
+    }
+</div>

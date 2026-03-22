@@ -1,8 +1,296 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
-@{
+﻿@{
     ViewData["Title"] = "Guard Dashboard";
 }
-<h2>Guard Dashboard</h2>
-<p>Welcome to the Guard Panel.</p>
+
+<style>
+    .dash-header {
+        margin-bottom: 1.75rem;
+    }
+
+        .dash-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .dash-header p {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.75rem;
+    }
+
+    .stat-card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 1.25rem 1.5rem;
+        border-left: 4px solid transparent;
+        box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+        .stat-card.green {
+            border-color: #10b981;
+        }
+
+        .stat-card.orange {
+            border-color: #f59e0b;
+        }
+
+        .stat-card.blue {
+            border-color: #3b82f6;
+        }
+
+    .stat-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+    }
+
+    .green .stat-icon {
+        background: #d1fae5;
+    }
+
+    .orange .stat-icon {
+        background: #fef3c7;
+    }
+
+    .blue .stat-icon {
+        background: #dbeafe;
+    }
+
+    .stat-info .value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .stat-info .label {
+        font-size: 0.78rem;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .quick-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-bottom: 1.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.7rem 1.25rem;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.88rem;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .btn-primary-action {
+        background: #2563eb;
+        color: #fff;
+    }
+
+        .btn-primary-action:hover {
+            background: #1d4ed8;
+            color: #fff;
+        }
+
+    .btn-secondary-action {
+        background: #f1f5f9;
+        color: #334155;
+    }
+
+        .btn-secondary-action:hover {
+            background: #e2e8f0;
+            color: #334155;
+        }
+
+    .panel {
+        background: #fff;
+        border-radius: 12px;
+        padding: 1.25rem;
+        box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+    }
+
+    .panel-title {
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #64748b;
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+    }
+
+        .data-table th {
+            text-align: left;
+            padding: 0.5rem 0.75rem;
+            color: #94a3b8;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .data-table td {
+            padding: 0.65rem 0.75rem;
+            border-top: 1px solid #f8fafc;
+            color: #334155;
+        }
+
+        .data-table tr:hover td {
+            background: #f8fafc;
+        }
+
+    .badge-in {
+        background: #d1fae5;
+        color: #065f46;
+        display: inline-block;
+        padding: 0.2rem 0.6rem;
+        border-radius: 20px;
+        font-size: 0.72rem;
+        font-weight: 600;
+    }
+
+    .duration {
+        font-size: 0.78rem;
+        color: #94a3b8;
+    }
+
+    .empty {
+        text-align: center;
+        padding: 3rem;
+        color: #94a3b8;
+    }
+
+    .empty-icon {
+        font-size: 2.5rem;
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+</style>
+
+<div class="dash-header">
+    <h2>&#128737; Guard Dashboard</h2>
+    <p>Active visits and check-in operations — @DateTime.Now.ToString("dddd, dd MMMM yyyy HH:mm")</p>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid">
+    <div class="stat-card orange">
+        <div class="stat-icon">&#128682;</div>
+        <div class="stat-info">
+            <div class="value">@ViewBag.CurrentlyInside</div>
+            <div class="label">Currently Inside</div>
+        </div>
+    </div>
+    <div class="stat-card blue">
+        <div class="stat-icon">&#128197;</div>
+        <div class="stat-info">
+            <div class="value">@ViewBag.TodayVisitCount</div>
+            <div class="label">Visits Today</div>
+        </div>
+    </div>
+    <div class="stat-card green">
+        <div class="stat-icon">&#9989;</div>
+        <div class="stat-info">
+            <div class="value">@ViewBag.CheckedOutToday</div>
+            <div class="label">Checked Out Today</div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="quick-actions">
+    <a asp-controller="Visits" asp-action="Create" class="btn-action btn-primary-action">
+        &#43; Check In Visitor
+    </a>
+    <a asp-controller="Visits" asp-action="Index" class="btn-action btn-secondary-action">
+        &#128203; All Visits
+    </a>
+    <a asp-controller="Visitors" asp-action="Index" class="btn-action btn-secondary-action">
+        &#128101; Visitor Records
+    </a>
+</div>
+
+<!-- Active Visits Table -->
+<div class="panel">
+    <div class="panel-title">&#9899; Visitors Currently Inside</div>
+
+    @{
+        var activeVisits = ViewBag.ActiveVisits as List<MgeniTrack.Models.Visit>;
+    }
+
+    @if (activeVisits != null && activeVisits.Any())
+    {
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Visitor Name</th>
+                    <th>House</th>
+                    <th>Purpose</th>
+                    <th>Time In</th>
+                    <th>Duration</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var v in activeVisits)
+                {
+                    var duration = v.TimeIn.HasValue
+                    ? (int)(DateTime.Now - v.TimeIn.Value).TotalMinutes
+                    : 0;
+                    var durationText = duration >= 60
+                    ? $"{duration / 60}h {duration % 60}m"
+                    : $"{duration}m";
+
+                    <tr>
+                        <td><strong>@(v.Visitor?.FullName ?? "—")</strong></td>
+                        <td>@(v.HouseNumber ?? "—")</td>
+                        <td>@(v.PurposeOfVisit ?? "—")</td>
+                        <td>@(v.TimeIn?.ToString("HH:mm") ?? "—")</td>
+                        <td><span class="duration">@durationText</span></td>
+                        <td><span class="badge-in">&#9679; Inside</span></td>
+                        <td>
+                            <a asp-controller="Visits" asp-action="Edit" asp-route-id="@v.VisitId"
+                               style="font-size:0.8rem; color:#2563eb; text-decoration:none;">
+                                Check Out
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <div class="empty">
+            <span class="empty-icon">&#127968;</span>
+            No visitors currently inside the premises.
+        </div>
+    }
+</div>
