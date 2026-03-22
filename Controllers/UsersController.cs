@@ -1,16 +1,15 @@
 ﻿using MgeniTrack.Models;
 using MgeniTrack.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using System.Security.Claims;
 
 namespace MgeniTrack.Controllers
 {
+    [Authorize(Roles = "SuperAdmin")]
     public class UsersController : Controller
     {
         private readonly MgenitrackContext _context;
@@ -23,26 +22,24 @@ namespace MgeniTrack.Controllers
         // GET: Users
         public async Task<IActionResult> Index()
         {
-            var mgenitrackContext = _context.Users.Include(u => u.CreatedByNavigation);
-            return View(await mgenitrackContext.ToListAsync());
+            var users = await _context.Users
+                .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+                .ToListAsync();
+            return View(users);
         }
 
         // GET: Users/Details/5
         public async Task<IActionResult> Details(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
             var user = await _context.Users
-                .Include(u => u.CreatedByNavigation)
+                .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
+                .Include(u => u.Resident)
                 .FirstOrDefaultAsync(m => m.UserId == id);
-            if (user == null)
-            {
-                return NotFound();
-            }
 
+            if (user == null) return NotFound();
             return View(user);
         }
 
@@ -55,33 +52,53 @@ namespace MgeniTrack.Controllers
                     Value = r.RoleId.ToString(),
                     Text = r.RoleName
                 }).ToListAsync();
-
             return View();
         }
 
         // POST: Users/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-   
         [HttpPost]
-
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(UserCreateViewModel model)
         {
+            // ✅ FIX: Validate HouseNumber if role is Resident
+            var role = await _context.Roles.FindAsync(model.SelectedRoleId);
+            if (role != null && role.RoleName == "Resident" && string.IsNullOrWhiteSpace(model.HouseNumber))
+            {
+                ModelState.AddModelError("HouseNumber", "House number is required for Residents.");
+            }
+
+            if (role != null && role.RoleName == "Guard" && string.IsNullOrWhiteSpace(model.Shift))
+            {
+                ModelState.AddModelError("Shift", "Shift is required for Guards.");
+            }
+
             if (!ModelState.IsValid)
+            {
+                ViewBag.Roles = await _context.Roles
+                    .Select(r => new SelectListItem { Value = r.RoleId.ToString(), Text = r.RoleName })
+                    .ToListAsync();
                 return View(model);
+            }
+
+            // ✅ FIX: Get the currently logged-in user as the creator
+            var creatorEmail = User.FindFirstValue(ClaimTypes.Name);
+            var creatorUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == creatorEmail);
+            if (creatorUser == null)
+                return Unauthorized();
 
             var hasher = new PasswordHasher<User>();
-            var creatorUser = await _context.Users.FirstOrDefaultAsync(); // Replace with actual logic to get the creator user
-            if (creatorUser == null)
-                throw new InvalidOperationException("Creator user must be set");
 
             var user = new User
             {
                 Firstname = model.Firstname,
+                Secondname = model.Secondname,
+                Gender = model.Gender,
+                IdNumber = model.IdNumber,
                 Email = model.Email,
+                PhoneNumber = model.PhoneNumber,
                 UserStatus = "Active",
-                CreatedByNavigation = creatorUser ?? throw new InvalidOperationException("Creator user must be set")
+                CreatedAt = DateTime.Now,
+                CreatedByNavigation = creatorUser
             };
 
             user.Passwordhash = hasher.HashPassword(user, model.Password);
@@ -95,101 +112,127 @@ namespace MgeniTrack.Controllers
                 UserId = user.UserId,
                 RoleId = model.SelectedRoleId,
                 Shift = model.Shift,
-                UserStatus = "Active"
+                UserStatus = "Active",
+                AssignedAt = DateTime.Now
             };
-
             _context.UserRoles.Add(userRole);
 
-            // If Resident → insert into RESIDENTS table
-            var role = await _context.Roles.FindAsync(model.SelectedRoleId);
+            // If Resident → insert into Residents table
             if (role != null && role.RoleName == "Resident")
             {
                 var resident = new Resident
                 {
                     UserId = user.UserId,
-                    HouseNumber = model.HouseNumber
+                    HouseNumber = model.HouseNumber!
                 };
-
                 _context.Residents.Add(resident);
             }
 
             await _context.SaveChangesAsync();
-
+            TempData["Success"] = $"User {user.Firstname} created successfully.";
             return RedirectToAction(nameof(Index));
         }
 
         // GET: Users/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
-            var user = await _context.Users.FindAsync(id);
+            if (id == null) return NotFound();
 
-            if (user == null)
+            var user = await _context.Users
+                .Include(u => u.UserRoles)
+                .Include(u => u.Resident)
+                .FirstOrDefaultAsync(u => u.UserId == id);
+
+            if (user == null) return NotFound();
+
+            var currentRole = user.UserRoles.FirstOrDefault(ur => ur.UserStatus == "Active");
+
+            var vm = new UserEditViewModel
             {
-                return NotFound();
-            }
+                UserId = user.UserId,
+                Firstname = user.Firstname,
+                Secondname = user.Secondname ?? "",
+                Gender = user.Gender ?? "",
+                IdNumber = user.IdNumber ?? "",
+                Email = user.Email,
+                PhoneNumber = user.PhoneNumber ?? "",
+                SelectedRoleId = currentRole?.RoleId ?? 0,
+                Shift = currentRole?.Shift,
+                HouseNumber = user.Resident?.HouseNumber
+            };
 
             ViewBag.Roles = await _context.Roles
-                .Select(r => new SelectListItem
-                {
-                    Value = r.RoleId.ToString(),
-                    Text = r.RoleName
-                }).ToListAsync();
+                .Select(r => new SelectListItem { Value = r.RoleId.ToString(), Text = r.RoleName })
+                .ToListAsync();
 
-            return View(user);
+            return View(vm);
         }
 
         // POST: Users/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("UserId,Firstname,Secondname,Gender,Passwordhash,IdNumber,Email,PhoneNumber,UserStatus,CreatedAt,LastLogin,CreatedBy")] User user)
+        public async Task<IActionResult> Edit(int id, UserEditViewModel model)
         {
-            if (id != user.UserId)
+            if (id != model.UserId) return NotFound();
+
+            if (!ModelState.IsValid)
             {
-                return NotFound();
+                ViewBag.Roles = await _context.Roles
+                    .Select(r => new SelectListItem { Value = r.RoleId.ToString(), Text = r.RoleName })
+                    .ToListAsync();
+                return View(model);
             }
 
-            if (ModelState.IsValid)
+            var user = await _context.Users
+                .Include(u => u.UserRoles)
+                .Include(u => u.Resident)
+                .FirstOrDefaultAsync(u => u.UserId == id);
+
+            if (user == null) return NotFound();
+
+            user.Firstname = model.Firstname;
+            user.Secondname = model.Secondname;
+            user.Gender = model.Gender;
+            user.IdNumber = model.IdNumber;
+            user.Email = model.Email;
+            user.PhoneNumber = model.PhoneNumber;
+
+            // ✅ Only update password if a new one was provided
+            if (!string.IsNullOrWhiteSpace(model.NewPassword))
             {
-                try
-                {
-                    _context.Update(user);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!UserExists(user.UserId))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction(nameof(Index));
+                var hasher = new PasswordHasher<User>();
+                user.Passwordhash = hasher.HashPassword(user, model.NewPassword);
             }
-            ViewData["CreatedBy"] = new SelectList(_context.Users, "UserId", "UserId", user.CreatedBy);
-            return View(user);
+
+            // Update role
+            var existingRole = user.UserRoles.FirstOrDefault(ur => ur.UserStatus == "Active");
+            if (existingRole != null)
+            {
+                existingRole.RoleId = model.SelectedRoleId;
+                existingRole.Shift = model.Shift;
+            }
+
+            // Update resident house number if applicable
+            if (user.Resident != null && !string.IsNullOrWhiteSpace(model.HouseNumber))
+            {
+                user.Resident.HouseNumber = model.HouseNumber;
+            }
+
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "User updated successfully.";
+            return RedirectToAction(nameof(Index));
         }
 
         // GET: Users/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
             var user = await _context.Users
-                .Include(u => u.CreatedByNavigation)
+                .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
                 .FirstOrDefaultAsync(m => m.UserId == id);
-            if (user == null)
-            {
-                return NotFound();
-            }
 
+            if (user == null) return NotFound();
             return View(user);
         }
 
@@ -201,10 +244,11 @@ namespace MgeniTrack.Controllers
             var user = await _context.Users.FindAsync(id);
             if (user != null)
             {
-                _context.Users.Remove(user);
+                // ✅ Soft delete — set status to Inactive instead of deleting
+                user.UserStatus = "Inactive";
+                await _context.SaveChangesAsync();
             }
-
-            await _context.SaveChangesAsync();
+            TempData["Success"] = "User deactivated successfully.";
             return RedirectToAction(nameof(Index));
         }
 
