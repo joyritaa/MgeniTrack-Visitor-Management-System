@@ -1,94 +1,94 @@
 ﻿@model MgeniTrack.ViewModels.UserCreateViewModel
 
-@{
-    ViewData["Title"] = "Create User";
-}
+<form asp-controller="Users" asp-action="Create" method="post">
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
-<div class="card shadow-sm">
-    <div class="carsd-header bg-dark text-white">
-        <h4>Create New User</h4>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+        <div class="form-group">
+            <label asp-for="Firstname"></label>
+            <input asp-for="Firstname" class="form-control" placeholder="First name" />
+            <span asp-validation-for="Firstname" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="Secondname"></label>
+            <input asp-for="Secondname" class="form-control" placeholder="Last name" />
+            <span asp-validation-for="Secondname" class="text-danger"></span>
+        </div>
     </div>
 
-    <div class="card-body">
-
-        <form asp-action="Create" method="post">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-
-            <!-- First Name -->
-            <div class="mb-3">
-                <label asp-for="Firstname" class="form-label"></label>
-                <input asp-for="Firstname" class="form-control" />
-                <span asp-validation-for="Firstname" class="text-danger"></span>
-            </div>
-            <!-- Second Name -->
-            <div class="mb-3">
-                <label asp-for="Secondname" class="form-label"></label>
-                <input asp-for="Secondname" class="form-control" />
-                <span asp-validation-for="Secondname" class="text-danger"></span>
-            </div>
-
-            <!-- Email -->
-            <div class="mb-3">
-                <label asp-for="Email" class="form-label"></label>
-                <input asp-for="Email" class="form-control" />
-                <span asp-validation-for="Email" class="text-danger"></span>
-            </div>
-
-            <!-- Password -->
-            <div class="mb-3">
-                <label asp-for="Password" class="form-label"></label>
-                <input asp-for="Password" type="password" class="form-control" />
-                <span asp-validation-for="Password" class="text-danger"></span>
-            </div>
-
-            <!-- Gender -->
-            <div class="mb-3">
-                <label asp-for="Gender" class="form-label"></label>
-                <select asp-for="Gender" class="form-control">
-                    <option value="">-- Select Gender --</option>
-                    <option>Male</option>
-                    <option>Female</option>
-                    <option>Other</option>
-                </select>
-                <span asp-validation-for="Gender" class="text-danger"></span>
-            </div>
-
-            <!-- Role -->
-            <div class="mb-3">
-                <label asp-for="SelectedRoleId" class="form-label">Role</label>
-                <select asp-for="SelectedRoleId" asp-items="ViewBag.Roles" class="form-control">
-                    <option value="">-- Select Role --</option>
-                </select>
-                <span asp-validation-for="SelectedRoleId" class="text-danger"></span>
-            </div>
-
-            <!-- Shift (Only for Guards) -->
-            <div class="mb-3">
-                <label asp-for="Shift" class="form-label"></label>
-                <input asp-for="Shift" class="form-control" />
-                <span asp-validation-for="Shift" class="text-danger"></span>
-                <small class="text-muted">Only required if role is Guard</small>
-            </div>
-
-            <!-- House Number (Only for Residents) -->
-            <div class="mb-3">
-                <label asp-for="HouseNumber" class="form-label"></label>
-                <input asp-for="HouseNumber" class="form-control" />
-                <span asp-validation-for="HouseNumber" class="text-danger"></span>
-                <small class="text-muted">Only required if role is Resident</small>
-            </div>
-
-            <div class="d-flex justify-content-between">
-                <a asp-action="Index" class="btn btn-secondary">Back</a>
-                <button type="submit" class="btn btn-primary">Create User</button>
-            </div>
-        </form>
-
+    <div class="form-group">
+        <label asp-for="Email"></label>
+        <input asp-for="Email" class="form-control" placeholder="email@example.com" />
+        <span asp-validation-for="Email" class="text-danger"></span>
     </div>
-</div>
+
+    <div class="form-group">
+        <label asp-for="Password"></label>
+        <input asp-for="Password" type="password" class="form-control" placeholder="••••••••" />
+        <span asp-validation-for="Password" class="text-danger"></span>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+        <div class="form-group">
+            <label asp-for="Gender"></label>
+            <select asp-for="Gender" class="form-control">
+                <option value="">— Select —</option>
+                <option>Male</option>
+                <option>Female</option>
+                <option>Other</option>
+            </select>
+            <span asp-validation-for="Gender" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="PhoneNumber"></label>
+            <input asp-for="PhoneNumber" class="form-control" placeholder="07XX XXX XXX" />
+            <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="IdNumber"></label>
+        <input asp-for="IdNumber" class="form-control" placeholder="National ID or Passport" />
+        <span asp-validation-for="IdNumber" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="SelectedRoleId">Role</label>
+        <select asp-for="SelectedRoleId" asp-items="ViewBag.Roles" class="form-control">
+            <option value="">— Select Role —</option>
+        </select>
+        <span asp-validation-for="SelectedRoleId" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Shift"></label>
+        <select asp-for="Shift" class="form-control">
+            <option value="">— Select shift (Guards only) —</option>
+            <option>Day</option>
+            <option>Night</option>
+        </select>
+        <span asp-validation-for="Shift" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="HouseNumber"></label>
+        <input asp-for="HouseNumber" class="form-control"
+               placeholder="e.g. A101 (Residents only)" />
+        <span asp-validation-for="HouseNumber" class="text-danger"></span>
+    </div>
+
+    <div style="display:flex; gap:0.75rem; margin-top:1rem;
+                padding-top:1rem; border-top:1px solid var(--gray-100);">
+        <button type="submit" class="btn btn-primary" style="flex:1;">
+            &#10003; Create User
+        </button>
+    </div>
+</form>
 
 @section Scripts {
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
 }
+
+

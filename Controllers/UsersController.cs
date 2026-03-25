@@ -9,7 +9,7 @@ using System.Security.Claims;
 
 namespace MgeniTrack.Controllers
 {
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize]
     public class UsersController : Controller
     {
         private readonly MgenitrackContext _context;
