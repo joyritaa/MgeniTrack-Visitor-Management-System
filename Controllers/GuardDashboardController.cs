@@ -73,7 +73,7 @@ namespace MgeniTrack.Controllers
                     FirstVisitDate = DateTime.Now,
                     TotalVisits = 1,
                     CreatedAt = DateTime.Now,
-                    InvitedViaInvitationId = 0  // walk-in: no invitation
+                    InvitedViaInvitationId = null  // walk-in: no invitation
                 };
                 _context.Visitors.Add(visitor);
                 await _context.SaveChangesAsync();

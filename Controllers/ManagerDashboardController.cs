@@ -42,6 +42,13 @@ namespace MgeniTrack.Controllers
                 .Take(10)
                 .ToListAsync();
 
+            // Recent reports
+            ViewBag.RecentReports = await _context.Reports
+                .Include(r => r.GeneratedByNavigation)
+                .OrderByDescending(r => r.GeneratedAt)
+                .Take(5)
+                .ToListAsync();
+
             return View();
         }
     }

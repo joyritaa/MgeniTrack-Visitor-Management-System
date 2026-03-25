@@ -474,6 +474,7 @@ public partial class MgenitrackContext : DbContext
 
             entity.HasOne(d => d.InvitedViaInvitation).WithMany(p => p.Visitors)
                 .HasForeignKey(d => d.InvitedViaInvitationId)
+                .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("visitors_ibfk_1");
         });
 
