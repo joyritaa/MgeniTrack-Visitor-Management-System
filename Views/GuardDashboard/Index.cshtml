@@ -9,6 +9,7 @@
     </div>
 </div>
 
+<!-- Stats -->
 <div class="stats-grid">
     <div class="stat-card orange">
         <div class="stat-icon">&#128682;</div>
@@ -33,17 +34,37 @@
     </div>
 </div>
 
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">&#9989; @TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">&#9888; @TempData["Error"]</div>
+}
+
+<!-- Quick Actions -->
 <div class="quick-actions">
-    <a asp-controller="Visits" asp-action="Create" class="btn btn-primary">&#43; Check In Visitor</a>
-    <a asp-controller="Visits" asp-action="Index" class="btn btn-secondary">&#128203; All Visits</a>
-    <a asp-controller="Visitors" asp-action="Index" class="btn btn-secondary">&#128101; Visitor Records</a>
+    <a asp-controller="VisitorInvitations" asp-action="PendingList"
+       class="btn btn-primary">
+        &#128203; Verify Pre-Registered Visitor
+    </a>
+    <a asp-action="WalkIn" class="btn btn-secondary">
+        &#128100; Manual Walk-In Check-In
+    </a>
+    <a asp-controller="Visits" asp-action="Index" class="btn btn-secondary">
+        &#128203; All Visit Records
+    </a>
 </div>
 
+<!-- Active Visits Table -->
 <div class="panel">
-    <div class="panel-title">&#9899; Visitors Currently Inside</div>
+    <div class="panel-title">&#9899; Visitors Currently Inside — Click "Check Out" to record exit</div>
+
     @{
         var activeVisits = ViewBag.ActiveVisits as List<MgeniTrack.Models.Visit>;
     }
+
     @if (activeVisits != null && activeVisits.Any())
     {
         <table class="data-table">
@@ -52,27 +73,42 @@
                     <th>Visitor Name</th>
                     <th>House</th>
                     <th>Purpose</th>
+                    <th>Method</th>
                     <th>Time In</th>
                     <th>Duration</th>
                     <th>Status</th>
-                    <th></th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach (var v in activeVisits)
                 {
-                    var mins = v.TimeIn.HasValue ? (int)(DateTime.Now - v.TimeIn.Value).TotalMinutes : 0;
-                    var dur = mins >= 60 ? $"{mins / 60}h {mins % 60}m" : $"{mins}m";
+                    var mins = v.TimeIn.HasValue
+                    ? (int)(DateTime.Now - v.TimeIn.Value).TotalMinutes : 0;
+                    var dur = mins >= 60
+                    ? $"{mins / 60}h {mins % 60}m" : $"{mins}m";
                     <tr>
                         <td><strong>@(v.Visitor?.FullName ?? "—")</strong></td>
-                        <td>@(v.HouseNumber ?? "—")</td>
+                        <td>
+                            <span class="badge badge-blue">@(v.HouseNumber ?? "—")</span>
+                        </td>
                         <td>@(v.PurposeOfVisit ?? "—")</td>
+                        <td>
+                            <span class="badge @(v.CheckInMethod == "QR" ? "badge-blue" : "badge-gray")">
+                                @(v.CheckInMethod ?? "Manual")
+                            </span>
+                        </td>
                         <td>@(v.TimeIn?.ToString("HH:mm") ?? "—")</td>
                         <td><span class="duration">@dur</span></td>
                         <td><span class="badge badge-in">&#9679; Inside</span></td>
-                        <td class="table-actions">
-                            <a asp-controller="Visits" asp-action="Edit"
-                               asp-route-id="@v.VisitId" class="edit">Check Out</a>
+                        <td>
+                            <!-- ✅ FIXED: Points to GuardDashboard/CheckOut, not Visits/Edit -->
+                            <a asp-action="CheckOut"
+                               asp-route-visitId="@v.VisitId"
+                               class="btn btn-danger"
+                               style="padding:0.35rem 0.8rem; font-size:0.78rem;">
+                                &#128682; Check Out
+                            </a>
                         </td>
                     </tr>
                 }

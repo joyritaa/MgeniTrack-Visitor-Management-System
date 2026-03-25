@@ -1,0 +1,126 @@
+﻿@model MgeniTrack.ViewModels.WalkInViewModel
+
+@{
+    ViewData["Title"] = "Manual Check-In";
+}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <h2>&#128100; Manual Walk-In Check-In</h2>
+        <p>Register a visitor who has no pre-registered invitation</p>
+    </div>
+    <a asp-action="Index" class="btn btn-secondary">&#8592; Dashboard</a>
+</div>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; align-items:start;">
+
+    <!-- Form -->
+    <div class="form-card" style="max-width:100%;">
+        <div style="font-size:0.73rem; font-weight:700; text-transform:uppercase;
+                    letter-spacing:0.1em; color:var(--gray-400);
+                    padding-bottom:0.85rem; margin-bottom:1.25rem;
+                    border-bottom:1px solid var(--gray-100);">
+            &#9999; Visitor Details
+        </div>
+
+        <form asp-action="WalkIn" method="post">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+            <div class="form-group">
+                <label asp-for="VisitorName"></label>
+                <input asp-for="VisitorName" class="form-control"
+                       placeholder="e.g. John Kamau" autofocus />
+                <span asp-validation-for="VisitorName" class="text-danger"></span>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                <div class="form-group">
+                    <label asp-for="IdNumber"></label>
+                    <input asp-for="IdNumber" class="form-control"
+                           placeholder="National ID or Passport" />
+                    <span asp-validation-for="IdNumber" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="ContactNumber"></label>
+                    <input asp-for="ContactNumber" class="form-control"
+                           placeholder="07XX XXX XXX" />
+                    <span asp-validation-for="ContactNumber" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="HouseNumber"></label>
+                <input asp-for="HouseNumber" class="form-control"
+                       placeholder="e.g. A101" />
+                <span asp-validation-for="HouseNumber" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="PurposeOfVisit"></label>
+                <select asp-for="PurposeOfVisit" class="form-control">
+                    <option value="">— Select purpose —</option>
+                    <option>Personal Visit</option>
+                    <option>Family</option>
+                    <option>Delivery</option>
+                    <option>Maintenance / Repair</option>
+                    <option>Business</option>
+                    <option>Other</option>
+                </select>
+                <span asp-validation-for="PurposeOfVisit" class="text-danger"></span>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                <div class="form-group">
+                    <label asp-for="NumberOfOccupants"></label>
+                    <input asp-for="NumberOfOccupants" type="number"
+                           class="form-control" min="1" max="20" />
+                    <span asp-validation-for="NumberOfOccupants" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="CarRegistration"></label>
+                    <input asp-for="CarRegistration" class="form-control"
+                           placeholder="e.g. KCA 123A (optional)" />
+                    <span asp-validation-for="CarRegistration" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div style="display:flex; gap:0.75rem; margin-top:1rem;
+                        padding-top:1rem; border-top:1px solid var(--gray-100);">
+                <button type="submit" class="btn btn-primary" style="flex:1;">
+                    &#9989; Check In Visitor
+                </button>
+                <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Info panel -->
+    <div class="panel" style="background:var(--blue-50); border-color:var(--blue-200);">
+        <div class="panel-title" style="color:var(--blue-500);">&#128274; When to use this form</div>
+        <p style="font-size:0.85rem; color:var(--blue-700); line-height:1.7;">
+            Use this form for <strong>walk-in visitors</strong> who arrive at the gate
+            without a pre-registered invitation from a resident.
+        </p>
+        <ul style="font-size:0.82rem; color:var(--blue-600); margin-top:0.75rem;
+                   padding-left:1.25rem; line-height:2;">
+            <li>Always verify the visitor's ID document</li>
+            <li>Confirm with the resident before allowing entry</li>
+            <li>Record the correct house number</li>
+            <li>Note the car registration if they arrived by vehicle</li>
+        </ul>
+        <div style="margin-top:1rem; padding-top:1rem; border-top:1px solid var(--blue-200);">
+            <a asp-controller="VisitorInvitations" asp-action="PendingList"
+               class="btn btn-primary" style="font-size:0.82rem; width:100%;">
+                &#128203; Check Pre-Registered Visitors Instead
+            </a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
+
