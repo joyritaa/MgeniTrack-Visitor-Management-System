@@ -11,9 +11,13 @@ public partial class Resident
 
     public string HouseNumber { get; set; } = null!;
 
-    public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+    //Link to the units table
+    public int? UnitId { get; set; }
 
+    public virtual Unit? Unit { get; set; }
     public virtual User User { get; set; } = null!;
+
+    public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 
     public virtual ICollection<VisitorInvitation> VisitorInvitations { get; set; } = new List<VisitorInvitation>();
 }

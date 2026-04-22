@@ -29,9 +29,13 @@ public partial class User
 
     public int? CreatedBy { get; set; }
 
+    public DateTime? SessionExpiresAt { get; set; }
+    public DateTime? LastActivityAt { get; set; }
+
+
     public virtual ICollection<ActivityLog> ActivityLogs { get; set; } = new List<ActivityLog>();
 
-    public required virtual User CreatedByNavigation { get; set; }
+    public virtual User? CreatedByNavigation { get; set; }
 
     public virtual ICollection<User> InverseCreatedByNavigation { get; set; } = new List<User>();
 

@@ -17,6 +17,10 @@ public partial class Notification
 
     public DateTime? CreatedAt { get; set; }
 
+    public string? NotificationType { get; set; }   // notifs for "VisitorArrived, Invited, CheckedOut"
+    public string? Title { get; set; }
+    public bool IsEmailSent { get; set; } = false;
+
     public virtual Resident? Resident { get; set; }
 
     public virtual Visit? Visit { get; set; }
