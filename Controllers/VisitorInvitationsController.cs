@@ -4,16 +4,20 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MgeniTrack.Models;
 using MgeniTrack.ViewModels;
+using MgeniTrack.Services;
+using MgeniTrack.Helpers;
 
 namespace MgeniTrack.Controllers
 {
     public class VisitorInvitationsController : Controller
     {
         private readonly MgenitrackContext _context;
+        private readonly ActivityLogService _activityLog;
 
-        public VisitorInvitationsController(MgenitrackContext context)
+        public VisitorInvitationsController(MgenitrackContext context, ActivityLogService activityLog)
         {
             _context = context;
+            _activityLog = activityLog;
         }
 
         // RESIDENT: List their own invitations
@@ -43,7 +47,6 @@ namespace MgeniTrack.Controllers
 
             return View(await query.ToListAsync());
         }
-
 
         // RESIDENT: Create invitation — GET
         [Authorize(Roles = "Resident")]
@@ -97,10 +100,13 @@ namespace MgeniTrack.Controllers
             _context.VisitorInvitations.Add(invitation);
             await _context.SaveChangesAsync();
 
+            await _activityLog.LogAsync("Create",
+                $"Invitation created for {model.VisitorName} (token: {token})",
+                "VisitorInvitation", invitation.InvitationId);
+
             TempData["Success"] = $"Invitation created for {model.VisitorName}. Token: {token}";
             return RedirectToAction(nameof(Index));
         }
-
 
         // RESIDENT: Invitation details
         [Authorize(Roles = "Resident,PropertyManager,SuperAdmin")]
@@ -116,7 +122,7 @@ namespace MgeniTrack.Controllers
             return View(invitation);
         }
 
-        // RESIDENT: Cancel invitation
+      // RESIDENT: Cancel invitation
         [Authorize(Roles = "Resident")]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -140,7 +146,6 @@ namespace MgeniTrack.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-       
         // GUARD: View all pending invitations to verify
         [Authorize(Roles = "Guard")]
         public async Task<IActionResult> PendingList(string? search)
@@ -207,7 +212,6 @@ namespace MgeniTrack.Controllers
 
             return View(vm);
         }
-
         // GUARD: Check-in form — POST (creates a Visit record)
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -283,6 +287,10 @@ namespace MgeniTrack.Controllers
             invitation.VisitStatus = "Arrived";
 
             await _context.SaveChangesAsync();
+
+            await _activityLog.LogAsync("CheckIn",
+                $"Pre-registered: {model.VisitorName} checked into {model.HouseNumber} via invitation",
+                "Visit", visit.VisitId);
 
             TempData["Success"] = $"{model.VisitorName} checked in successfully to {model.HouseNumber}.";
             return RedirectToAction("Index", "GuardDashboard");

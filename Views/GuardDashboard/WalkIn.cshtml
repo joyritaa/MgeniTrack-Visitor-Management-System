@@ -1,20 +1,22 @@
-﻿@model MgeniTrack.ViewModels.WalkInViewModel
+﻿@using MgeniTrack.Helpers
+@model MgeniTrack.ViewModels.WalkInViewModel
 
 @{
-    ViewData["Title"] = "Manual Check-In";
+    ViewData["Title"] = "Manual Walk-In Check-In";
+    var grouped = ViewBag.HouseNumbers as Dictionary<string, List<string>>
+                  ?? HouseNumberHelper.GetGrouped();
 }
 
 <div class="page-header">
     <div class="page-header-left">
         <h2>&#128100; Manual Walk-In Check-In</h2>
-        <p>Register a visitor who has no pre-registered invitation</p>
+        <p>Register a visitor arriving without a pre-registered invitation</p>
     </div>
     <a asp-action="Index" class="btn btn-secondary">&#8592; Dashboard</a>
 </div>
 
 <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; align-items:start;">
 
-    <!-- Form -->
     <div class="form-card" style="max-width:100%;">
         <div style="font-size:0.73rem; font-weight:700; text-transform:uppercase;
                     letter-spacing:0.1em; color:var(--gray-400);
@@ -49,23 +51,38 @@
                 </div>
             </div>
 
+            <!-- House number — grouped dropdown by block -->
             <div class="form-group">
                 <label asp-for="HouseNumber"></label>
-                <input asp-for="HouseNumber" class="form-control"
-                       placeholder="e.g. A101" />
+                <select asp-for="HouseNumber" class="form-control" id="houseSelect"
+                        onchange="autoDetectPurpose(this.value)">
+                    <option value="">— Select unit —</option>
+                    @foreach (var group in grouped)
+                    {
+                        <optgroup label="@group.Key">
+                            @foreach (var unit in group.Value)
+                            {
+                                <option value="@unit">@unit</option>
+                            }
+                        </optgroup>
+                    }
+                </select>
                 <span asp-validation-for="HouseNumber" class="text-danger"></span>
+                <small id="blockLabel" style="color:var(--blue-600); font-size:0.75rem; margin-top:0.25rem; display:block;"></small>
             </div>
 
+            <!-- Purpose of visit -->
             <div class="form-group">
                 <label asp-for="PurposeOfVisit"></label>
-                <select asp-for="PurposeOfVisit" class="form-control">
+                <select asp-for="PurposeOfVisit" class="form-control" id="purposeSelect">
                     <option value="">— Select purpose —</option>
-                    <option>Personal Visit</option>
-                    <option>Family</option>
-                    <option>Delivery</option>
-                    <option>Maintenance / Repair</option>
-                    <option>Business</option>
-                    <option>Other</option>
+                    <option value="Personal Visit">Personal Visit</option>
+                    <option value="Family">Family</option>
+                    <option value="Delivery">Delivery</option>
+                    <option value="Maintenance / Repair">Maintenance / Repair</option>
+                    <option value="Business">Business</option>
+                    <option value="BnB Stay">BnB Stay (Block C)</option>
+                    <option value="Other">Other</option>
                 </select>
                 <span asp-validation-for="PurposeOfVisit" class="text-danger"></span>
             </div>
@@ -96,31 +113,73 @@
     </div>
 
     <!-- Info panel -->
-    <div class="panel" style="background:var(--blue-50); border-color:var(--blue-200);">
-        <div class="panel-title" style="color:var(--blue-500);">&#128274; When to use this form</div>
-        <p style="font-size:0.85rem; color:var(--blue-700); line-height:1.7;">
-            Use this form for <strong>walk-in visitors</strong> who arrive at the gate
-            without a pre-registered invitation from a resident.
-        </p>
-        <ul style="font-size:0.82rem; color:var(--blue-600); margin-top:0.75rem;
-                   padding-left:1.25rem; line-height:2;">
-            <li>Always verify the visitor's ID document</li>
-            <li>Confirm with the resident before allowing entry</li>
-            <li>Record the correct house number</li>
-            <li>Note the car registration if they arrived by vehicle</li>
-        </ul>
-        <div style="margin-top:1rem; padding-top:1rem; border-top:1px solid var(--blue-200);">
+    <div>
+        <div class="panel" style="background:var(--blue-50); border-color:var(--blue-200); margin-bottom:1rem;">
+            <div class="panel-title" style="color:var(--blue-500);">&#127968; Building Layout</div>
+            <div style="font-size:0.83rem; color:var(--blue-700); line-height:2.1;">
+                <div>
+                    <strong>Block A</strong> — Residential &nbsp;
+                    <span style="color:var(--gray-400);">A101–A610 (60 units)</span>
+                </div>
+                <div>
+                    <strong>Block B</strong> — Residential &nbsp;
+                    <span style="color:var(--gray-400);">B101–B610 (60 units)</span>
+                </div>
+                <div>
+                    <strong>Block C</strong> — BnB Units &nbsp;
+                    <span style="color:var(--gray-400);">C101–C610 (60 units)</span>
+                </div>
+                <div style="margin-top:0.5rem; font-size:0.78rem; color:var(--blue-500);">
+                    Unit format: [Block][Floor][Unit01–10]<br />
+                    e.g. A201 = Block A, Floor 2, Unit 1
+                </div>
+            </div>
+        </div>
+
+        <div class="panel" style="background:var(--warning-light); border-color:#fcd34d;">
+            <div class="panel-title" style="color:var(--warning-dark);">&#128274; Guard Checklist</div>
+            <ul style="font-size:0.82rem; color:var(--warning-dark); padding-left:1.2rem; line-height:2.1;">
+                <li>Verify visitor's ID document</li>
+                <li>Confirm with resident before entry</li>
+                <li>For Block C — confirm BnB booking</li>
+                <li>Record car reg if arrived by vehicle</li>
+                <li>Note number of occupants accurately</li>
+            </ul>
+        </div>
+
+        <div class="panel">
             <a asp-controller="VisitorInvitations" asp-action="PendingList"
-               class="btn btn-primary" style="font-size:0.82rem; width:100%;">
+               class="btn btn-primary" style="width:100%; justify-content:center;">
                 &#128203; Check Pre-Registered Visitors Instead
             </a>
         </div>
     </div>
 </div>
 
+<script>
+    function autoDetectPurpose(unit) {
+        var label  = document.getElementById('blockLabel');
+        var purpose = document.getElementById('purposeSelect');
+
+        if (!unit) { label.textContent = ''; return; }
+
+        var block = unit[0];
+        if (block === 'A') {
+            label.textContent = 'Block A — Residential';
+            label.style.color = 'var(--blue-600)';
+        } else if (block === 'B') {
+            label.textContent = 'Block B — Residential';
+            label.style.color = 'var(--blue-600)';
+        } else if (block === 'C') {
+            label.textContent = 'Block C — BnB Unit (auto-set purpose to BnB Stay)';
+            label.style.color = 'var(--success)';
+            purpose.value = 'BnB Stay';
+        }
+    }
+</script>
+
 @section Scripts {
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
 }
-

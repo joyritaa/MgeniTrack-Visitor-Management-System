@@ -1,13 +1,15 @@
-﻿@model MgeniTrack.ViewModels.InvitationCreateViewModel
+﻿@using MgeniTrack.Helpers
+@model MgeniTrack.ViewModels.InvitationCreateViewModel
 
 @{
     ViewData["Title"] = "Invite a Visitor";
+    var grouped = HouseNumberHelper.GetGrouped();
 }
 
 <div class="page-header">
     <div class="page-header-left">
         <h2>&#128140; Invite a Visitor</h2>
-        <p>Fill in your visitor's details. A unique access token will be generated for them.</p>
+        <p>Fill in your visitor's details. A unique access token will be generated.</p>
     </div>
     <a asp-action="Index" class="btn btn-secondary">&#8592; My Invitations</a>
 </div>
@@ -16,46 +18,40 @@
     <form asp-action="Create" method="post">
         <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
-        <!-- Visitor Name -->
         <div class="form-group">
             <label asp-for="VisitorName"></label>
-            <input asp-for="VisitorName" class="form-control"
-                   placeholder="e.g. John Kamau" />
+            <input asp-for="VisitorName" class="form-control" placeholder="e.g. Jane Wanjiku" />
             <span asp-validation-for="VisitorName" class="text-danger"></span>
         </div>
 
-        <!-- Phone + Email row -->
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
             <div class="form-group">
                 <label asp-for="VisitorPhone"></label>
-                <input asp-for="VisitorPhone" class="form-control"
-                       placeholder="e.g. 0712 345 678" />
+                <input asp-for="VisitorPhone" class="form-control" placeholder="07XX XXX XXX" />
                 <span asp-validation-for="VisitorPhone" class="text-danger"></span>
             </div>
             <div class="form-group">
                 <label asp-for="VisitorEmail"></label>
-                <input asp-for="VisitorEmail" class="form-control"
-                       placeholder="visitor@email.com" />
+                <input asp-for="VisitorEmail" class="form-control" placeholder="visitor@email.com" />
                 <span asp-validation-for="VisitorEmail" class="text-danger"></span>
             </div>
         </div>
 
-        <!-- Purpose -->
         <div class="form-group">
             <label asp-for="PurposeOfVisit"></label>
             <select asp-for="PurposeOfVisit" class="form-control">
                 <option value="">— Select purpose —</option>
-                <option>Personal Visit</option>
-                <option>Family</option>
-                <option>Delivery</option>
-                <option>Maintenance / Repair</option>
-                <option>Business</option>
-                <option>Other</option>
+                <option value="Personal Visit">Personal Visit</option>
+                <option value="Family">Family</option>
+                <option value="Delivery">Delivery</option>
+                <option value="Maintenance / Repair">Maintenance / Repair</option>
+                <option value="Business">Business</option>
+                <option value="BnB Stay">BnB Stay (Block C)</option>
+                <option value="Other">Other</option>
             </select>
             <span asp-validation-for="PurposeOfVisit" class="text-danger"></span>
         </div>
 
-        <!-- Expected Date -->
         <div class="form-group">
             <label asp-for="ExpectedDate"></label>
             <input asp-for="ExpectedDate" type="date" class="form-control"
@@ -63,14 +59,13 @@
             <span asp-validation-for="ExpectedDate" class="text-danger"></span>
         </div>
 
-        <!-- Info box -->
         <div class="alert alert-info" style="font-size:0.82rem; margin-bottom:1.25rem;">
-            &#128274; A unique invitation token will be generated and shown after submission.
-            Your visitor will use this token or QR code at the gate for fast check-in.
+            &#128274; A unique 10-character invitation token will be generated after submission.
+            Share it with your visitor — the guard will use it to verify and check them in at the gate.
         </div>
 
-        <div style="display:flex; gap:0.75rem; margin-top:0.5rem;">
-            <button type="submit" class="btn btn-primary">&#10003; Send Invitation</button>
+        <div style="display:flex; gap:0.75rem;">
+            <button type="submit" class="btn btn-primary">&#10003; Create Invitation</button>
             <a asp-action="Index" class="btn btn-secondary">Cancel</a>
         </div>
     </form>
