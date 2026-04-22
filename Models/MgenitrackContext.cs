@@ -193,7 +193,6 @@ public partial class MgenitrackContext : DbContext
             e.Property(x => x.NumberOfOccupants).HasDefaultValueSql("'1'").HasColumnType("int(11)").HasColumnName("number_of_occupants");
             e.Property(x => x.PurposeOfVisit).HasMaxLength(255).HasColumnName("purpose_of_visit");
             e.Property(x => x.QrCode).HasMaxLength(255).HasColumnName("qr_code");
-            e.Property(x => x.QrToken).HasMaxLength(64).HasColumnName("qr_token");
             e.Property(x => x.TimeIn).HasColumnType("datetime").HasColumnName("time_in");
             e.Property(x => x.TimeOut).HasColumnType("datetime").HasColumnName("time_out");
             e.Property(x => x.VisitDuration).HasColumnType("int(11)").HasColumnName("visit_duration");

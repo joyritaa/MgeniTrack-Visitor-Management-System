@@ -29,9 +29,6 @@ public partial class Visit
 
     public string? QrCode { get; set; }
 
-
-    public string? QrToken { get; set; }
-
     public int? VisitDuration { get; set; }
 
     public DateTime? CreatedAt { get; set; }
