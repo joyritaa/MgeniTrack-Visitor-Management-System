@@ -1,36 +1,22 @@
 ﻿@{
     ViewData["Title"] = "Guard Dashboard";
+    var shift = ViewBag.Shift as string ?? "—";
+    var guardName = ViewBag.GuardName as string ?? "Guard";
 }
 
 <div class="page-header">
     <div class="page-header-left">
         <h2>&#128737; Guard Dashboard</h2>
-        <p>Active visits and check-in operations — @DateTime.Now.ToString("dddd, dd MMMM yyyy HH:mm")</p>
+        <p>
+            @DateTime.Now.ToString("dddd, dd MMMM yyyy HH:mm") &nbsp;•&nbsp;
+            <span class="badge @(shift == "Day" ? "badge-orange" : "badge-blue")">
+                @(shift == "Day" ? "☀️" : "🌙") @shift Shift
+            </span>
+        </p>
     </div>
-</div>
-
-<!-- Stats -->
-<div class="stats-grid">
-    <div class="stat-card orange">
-        <div class="stat-icon">&#128682;</div>
-        <div class="stat-info">
-            <div class="value">@ViewBag.CurrentlyInside</div>
-            <div class="label">Currently Inside</div>
-        </div>
-    </div>
-    <div class="stat-card blue">
-        <div class="stat-icon">&#128197;</div>
-        <div class="stat-info">
-            <div class="value">@ViewBag.TodayVisitCount</div>
-            <div class="label">Visits Today</div>
-        </div>
-    </div>
-    <div class="stat-card green">
-        <div class="stat-icon">&#9989;</div>
-        <div class="stat-info">
-            <div class="value">@ViewBag.CheckedOutToday</div>
-            <div class="label">Checked Out Today</div>
-        </div>
+    <div style="display:flex;gap:0.65rem;">
+        <a asp-action="WalkIn" class="btn btn-primary">&#43; Walk-In Check-In</a>
+        <a asp-controller="VisitorInvitations" asp-action="PendingList" class="btn btn-secondary">&#128203; Pre-Registered</a>
     </div>
 </div>
 
@@ -43,70 +29,69 @@
     <div class="alert alert-danger">&#9888; @TempData["Error"]</div>
 }
 
-<!-- Quick Actions -->
-<div class="quick-actions">
-    <a asp-controller="VisitorInvitations" asp-action="PendingList"
-       class="btn btn-primary">
-        &#128203; Verify Pre-Registered Visitor
-    </a>
-    <a asp-action="WalkIn" class="btn btn-secondary">
-        &#128100; Manual Walk-In Check-In
-    </a>
-    <a asp-controller="Visits" asp-action="Index" class="btn btn-secondary">
-        &#128203; All Visit Records
-    </a>
+<div class="stats-grid">
+    <div class="stat-card orange">
+        <div class="stat-icon">&#128682;</div>
+        <div class="stat-info"><div class="value">@ViewBag.CurrentlyInside</div><div class="label">Currently Inside</div></div>
+    </div>
+    <div class="stat-card blue">
+        <div class="stat-icon">&#128197;</div>
+        <div class="stat-info"><div class="value">@ViewBag.TodayVisitCount</div><div class="label">Visits Today</div></div>
+    </div>
+    <div class="stat-card green">
+        <div class="stat-icon">&#9989;</div>
+        <div class="stat-info"><div class="value">@ViewBag.CheckedOutToday</div><div class="label">Checked Out Today</div></div>
+    </div>
 </div>
 
-<!-- Active Visits Table -->
+<!-- Active Visits with inline search -->
 <div class="panel">
-    <div class="panel-title">&#9899; Visitors Currently Inside — Click "Check Out" to record exit</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;
+                padding-bottom:0.85rem;margin-bottom:1rem;border-bottom:1px solid var(--gray-100);">
+        <span class="panel-title" style="border:none;padding:0;margin:0;">&#9899; Currently Inside</span>
+        <a asp-action="ActiveVisits" style="font-size:0.78rem;color:var(--blue-600);font-weight:600;">
+            View All &amp; Search →
+        </a>
+    </div>
 
     @{
         var activeVisits = ViewBag.ActiveVisits as List<MgeniTrack.Models.Visit>;
     }
-
     @if (activeVisits != null && activeVisits.Any())
     {
         <table class="data-table">
             <thead>
                 <tr>
-                    <th>Visitor Name</th>
+                    <th>Visitor</th>
                     <th>House</th>
                     <th>Purpose</th>
                     <th>Method</th>
                     <th>Time In</th>
                     <th>Duration</th>
-                    <th>Status</th>
                     <th>Action</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var v in activeVisits)
+                @foreach (var v in activeVisits.Take(10))
                 {
-                    var mins = v.TimeIn.HasValue
-                    ? (int)(DateTime.Now - v.TimeIn.Value).TotalMinutes : 0;
-                    var dur = mins >= 60
-                    ? $"{mins / 60}h {mins % 60}m" : $"{mins}m";
+                    var mins = v.TimeIn.HasValue ? (int)(DateTime.Now - v.TimeIn.Value).TotalMinutes : 0;
+                    var dur = mins >= 60 ? $"{mins / 60}h {mins % 60}m" : $"{mins}m";
                     <tr>
-                        <td><strong>@(v.Visitor?.FullName ?? "—")</strong></td>
                         <td>
-                            <span class="badge badge-blue">@(v.HouseNumber ?? "—")</span>
+                            @if (!string.IsNullOrEmpty(v.Visitor?.PhotoUrl))
+                            {
+                                <img src="@v.Visitor.PhotoUrl" style="width:28px;height:28px;border-radius:50%;object-fit:cover;margin-right:0.4rem;vertical-align:middle;" />
+                            }
+                            <strong>@(v.Visitor?.FullName ?? "—")</strong>
                         </td>
+                        <td><span class="badge badge-blue">@(v.HouseNumber ?? "—")</span></td>
                         <td>@(v.PurposeOfVisit ?? "—")</td>
-                        <td>
-                            <span class="badge @(v.CheckInMethod == "QR" ? "badge-blue" : "badge-gray")">
-                                @(v.CheckInMethod ?? "Manual")
-                            </span>
-                        </td>
+                        <td><span class="badge @(v.CheckInMethod == "QR" ? "badge-blue" : "badge-gray")">@(v.CheckInMethod ?? "Manual")</span></td>
                         <td>@(v.TimeIn?.ToString("HH:mm") ?? "—")</td>
                         <td><span class="duration">@dur</span></td>
-                        <td><span class="badge badge-in">&#9679; Inside</span></td>
                         <td>
-                            <!-- ✅ FIXED: Points to GuardDashboard/CheckOut, not Visits/Edit -->
-                            <a asp-action="CheckOut"
-                               asp-route-visitId="@v.VisitId"
-                               class="btn btn-danger"
-                               style="padding:0.35rem 0.8rem; font-size:0.78rem;">
+                            <a asp-action="CheckOut" asp-route-visitId="@v.VisitId"
+                               class="btn btn-danger" style="padding:0.3rem 0.7rem;font-size:0.78rem;">
                                 &#128682; Check Out
                             </a>
                         </td>
@@ -114,12 +99,16 @@
                 }
             </tbody>
         </table>
+        @if (activeVisits.Count > 10)
+        {
+            <div style="text-align:center;padding:0.75rem;font-size:0.82rem;color:var(--gray-400);">
+                Showing 10 of @activeVisits.Count —
+                <a asp-action="ActiveVisits" style="color:var(--blue-600);font-weight:600;">View all</a>
+            </div>
+        }
     }
     else
     {
-        <div class="empty">
-            <span class="empty-icon">&#127968;</span>
-            No visitors currently inside the premises.
-        </div>
+        <div class="empty"><span class="empty-icon">&#127968;</span>No visitors currently inside.</div>
     }
 </div>

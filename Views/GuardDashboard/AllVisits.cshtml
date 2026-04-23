@@ -1,0 +1,93 @@
+﻿@model IEnumerable<MgeniTrack.Models.Visit>
+@{
+    ViewData["Title"] = "Visit Records";
+}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <h2>&#128203; Visit Records</h2>
+        <p>Full visit history — searchable and filterable</p>
+    </div>
+    <a asp-action="Index" class="btn btn-secondary">&#8592; Dashboard</a>
+</div>
+
+<!-- Filters -->
+<div class="panel" style="padding:1rem 1.35rem;margin-bottom:1.25rem;">
+    <form asp-action="AllVisits" method="get"
+          style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;">
+        <input type="text" name="search" value="@ViewBag.Search"
+               class="form-control" style="max-width:280px;"
+               placeholder="Name, house, or ID..." />
+        <select name="status" class="form-control" style="max-width:160px;">
+            <option value="">All Status</option>
+             <option value="CheckedIn" selected=@(ViewBag.Status == "CheckedIn"  ? "selected" : "")>Currently Inside</option>
+            <option value="CheckedOut" selected=@(ViewBag.Status == "CheckedOut" ? "selected" : "")>Checked Out</option>
+        </select>
+        <select name="block" class="form-control" style="max-width:140px;">
+            <option value="All" selected="@(ViewBag.Block == "All" ? "selected" : null)>All Blocks</option>
+            <option value="A" selected="@(ViewBag.Block == "A" ? "selected" : null)">Block A</option>
+            <option value="B" selected="@(ViewBag.Block == "B" ? "selected" : null)">Block B</option>
+            <option value="C" selected="@(ViewBag.Block == "C" ? "selected" : null)">Block C (BnB)</option>
+        </select>
+        <button type="submit" class="btn btn-primary">&#128269; Filter</button>
+        <a asp-action="AllVisits" class="btn btn-secondary">&#10005; Reset</a>
+    </form>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="panel"><div class="empty"><span class="empty-icon">&#128203;</span>No visit records found.</div></div>
+}
+else
+{
+    <div class="table-card">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Visitor</th><th>House</th><th>Purpose</th>
+                    <th>Check-In</th><th>Check-Out</th><th>Duration</th>
+                    <th>Method</th><th>Guard</th><th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var v in Model)
+                {
+                    var dur = v.VisitDuration.HasValue
+                        ? (v.VisitDuration.Value >= 60
+                            ? $"{v.VisitDuration.Value/60}h {v.VisitDuration.Value%60}m"
+                            : $"{v.VisitDuration.Value}m")
+                        : (v.VisitStatus == "CheckedIn" && v.TimeIn.HasValue
+                            ? $"{(int)(DateTime.Now - v.TimeIn.Value).TotalMinutes}m (ongoing)"
+                            : "—");
+                    <tr>
+                        <td>
+                            @if (!string.IsNullOrEmpty(v.Visitor?.PhotoUrl))
+                            {
+                                <img src="@v.Visitor.PhotoUrl" style="width:28px;height:28px;border-radius:50%;object-fit:cover;margin-right:0.4rem;vertical-align:middle;" />
+                            }
+                            <strong>@(v.Visitor?.FullName ?? "—")</strong>
+                            <div style="font-size:0.72rem;color:var(--gray-400);">@(v.Visitor?.IdNumber ?? "")</div>
+                        </td>
+                        <td>
+                            <span class="badge @(v.HouseNumber?.StartsWith("C") == true ? "badge-purple" : "badge-blue")">
+                                @(v.HouseNumber ?? "—")
+                            </span>
+                        </td>
+                        <td>@(v.PurposeOfVisit ?? "—")</td>
+                        <td style="font-size:0.8rem;">@(v.TimeIn?.ToString("dd MMM, HH:mm") ?? "—")</td>
+                        <td style="font-size:0.8rem;">@(v.TimeOut?.ToString("dd MMM, HH:mm") ?? "—")</td>
+                        <td><span class="duration">@dur</span></td>
+                        <td><span class="badge @(v.CheckInMethod == "QR" ? "badge-blue" : "badge-gray")">@(v.CheckInMethod ?? "Manual")</span></td>
+                        <td style="font-size:0.78rem;">@(v.CheckedInByNavigation?.Firstname ?? "—")</td>
+                        <td>
+                            <span class="badge @(v.VisitStatus == "CheckedIn" ? "badge-in" : "badge-out")">
+                                @(v.VisitStatus == "CheckedIn" ? "Inside" : "Checked Out")
+                            </span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+

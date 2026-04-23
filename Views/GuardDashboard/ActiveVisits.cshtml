@@ -1,0 +1,101 @@
+﻿@model IEnumerable<MgeniTrack.Models.Visit>
+@{
+    ViewData["Title"] = "Active Visits";
+}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <h2>&#9899; Active Visits</h2>
+        <p>All visitors currently inside the premises — @DateTime.Now.ToString("HH:mm")</p>
+    </div>
+    <a asp-action="Index" class="btn btn-secondary">&#8592; Dashboard</a>
+</div>
+
+<div class="panel" style="padding:1rem 1.35rem;margin-bottom:1.25rem;">
+    <form asp-action="ActiveVisits" method="get" style="display:flex;gap:0.75rem;align-items:center;">
+        <input type="text" name="search" value="@ViewBag.Search"
+               class="form-control" style="max-width:360px;"
+               placeholder="Search by visitor name, house, or phone..." />
+        <button type="submit" class="btn btn-primary">&#128269; Search</button>
+        @if (!string.IsNullOrEmpty(ViewBag.Search as string))
+        {
+            <a asp-action="ActiveVisits" class="btn btn-secondary">&#10005; Clear</a>
+        }
+    </form>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">&#9989; @TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">&#9888; @TempData["Error"]</div>
+}
+
+@if (!Model.Any())
+{
+    <div class="panel"><div class="empty"><span class="empty-icon">&#9989;</span>No active visits found.</div></div>
+}
+else
+{
+    <div class="table-card">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Photo</th>
+                    <th>Visitor</th>
+                    <th>ID</th>
+                    <th>Contact</th>
+                    <th>House</th>
+                    <th>Purpose</th>
+                    <th>Method</th>
+                    <th>Time In</th>
+                    <th>Duration</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var v in Model)
+                {
+                    var mins = v.TimeIn.HasValue ? (int)(DateTime.Now - v.TimeIn.Value).TotalMinutes : 0;
+                    var dur = mins >= 60 ? $"{mins / 60}h {mins % 60}m" : $"{mins}m";
+                    var isLong = mins > 120;
+                    <tr style="@(isLong ? "background:rgba(239,68,68,0.04);" : "")">
+                        <td>
+                            @if (!string.IsNullOrEmpty(v.Visitor?.PhotoUrl))
+                            {
+                                <img src="@v.Visitor.PhotoUrl"
+                                     style="width:36px;height:36px;border-radius:50%;object-fit:cover;" />
+                            }
+                            else
+                            {
+                                <div class="avatar avatar-sm">@(v.Visitor?.FullName?.FirstOrDefault().ToString().ToUpper() ?? "?")</div>
+                            }
+                        </td>
+                        <td><strong>@(v.Visitor?.FullName ?? "—")</strong></td>
+                        <td style="font-size:0.78rem;color:var(--gray-500);">@(v.Visitor?.IdNumber ?? "—")</td>
+                        <td style="font-size:0.78rem;">@(v.Visitor?.ContactNumber ?? "—")</td>
+                        <td><span class="badge badge-blue">@(v.HouseNumber ?? "—")</span></td>
+                        <td>@(v.PurposeOfVisit ?? "—")</td>
+                        <td><span class="badge @(v.CheckInMethod == "QR" ? "badge-blue" : "badge-gray")">@(v.CheckInMethod ?? "Manual")</span></td>
+                        <td>@(v.TimeIn?.ToString("HH:mm") ?? "—")</td>
+                        <td>
+                            <span class="duration" style="@(isLong ? "color:var(--danger);font-weight:700;" : "")">@dur</span>
+                            @if (isLong)
+                            {
+                                <span style="font-size:0.68rem;color:var(--danger);display:block;">Long stay</span>
+                            }
+                        </td>
+                        <td>
+                            <a asp-action="CheckOut" asp-route-visitId="@v.VisitId"
+                               class="btn btn-danger" style="padding:0.3rem 0.7rem;font-size:0.78rem;">
+                                &#128682; Check Out
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

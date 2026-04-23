@@ -1,77 +1,93 @@
-﻿@using MgeniTrack.Helpers
-@model MgeniTrack.ViewModels.WalkInViewModel
-
+﻿@model MgeniTrack.ViewModels.WalkInViewModel
 @{
-    ViewData["Title"] = "Manual Walk-In Check-In";
-    var grouped = ViewBag.HouseNumbers as Dictionary<string, List<string>>
-                  ?? HouseNumberHelper.GetGrouped();
+    ViewData["Title"] = "Walk-In Check-In";
+    var occupiedUnits = ViewBag.OccupiedUnits as List<MgeniTrack.Models.Unit> ?? new();
+    var blockA = occupiedUnits.Where(u => u.Block == "A").ToList();
+    var blockB = occupiedUnits.Where(u => u.Block == "B").ToList();
+    var blockC = occupiedUnits.Where(u => u.Block == "C").ToList();
 }
 
 <div class="page-header">
     <div class="page-header-left">
-        <h2>&#128100; Manual Walk-In Check-In</h2>
-        <p>Register a visitor arriving without a pre-registered invitation</p>
+        <h2>&#128100; Walk-In Check-In</h2>
+        <p>Manual check-in for visitors without a pre-registered invitation</p>
     </div>
     <a asp-action="Index" class="btn btn-secondary">&#8592; Dashboard</a>
 </div>
 
-<div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; align-items:start;">
-
+<div style="display:grid;grid-template-columns:1.4fr 1fr;gap:1.5rem;align-items:start;">
     <div class="form-card" style="max-width:100%;">
-        <div style="font-size:0.73rem; font-weight:700; text-transform:uppercase;
-                    letter-spacing:0.1em; color:var(--gray-400);
-                    padding-bottom:0.85rem; margin-bottom:1.25rem;
-                    border-bottom:1px solid var(--gray-100);">
-            &#9999; Visitor Details
-        </div>
+        <div class="panel-title">&#9999; Visitor Details</div>
 
-        <form asp-action="WalkIn" method="post">
+        <form asp-action="WalkIn" method="post" enctype="multipart/form-data">
             @Html.AntiForgeryToken()
             <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
             <div class="form-group">
                 <label asp-for="VisitorName"></label>
-                <input asp-for="VisitorName" class="form-control"
-                       placeholder="e.g. John Kamau" autofocus />
+                <input asp-for="VisitorName" class="form-control" placeholder="Full name" autofocus />
                 <span asp-validation-for="VisitorName" class="text-danger"></span>
             </div>
 
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
                 <div class="form-group">
                     <label asp-for="IdNumber"></label>
-                    <input asp-for="IdNumber" class="form-control"
-                           placeholder="National ID or Passport" />
-                    <span asp-validation-for="IdNumber" class="text-danger"></span>
+                    <input asp-for="IdNumber" class="form-control" placeholder="National ID / Passport" />
                 </div>
                 <div class="form-group">
                     <label asp-for="ContactNumber"></label>
-                    <input asp-for="ContactNumber" class="form-control"
-                           placeholder="07XX XXX XXX" />
-                    <span asp-validation-for="ContactNumber" class="text-danger"></span>
+                    <input asp-for="ContactNumber" class="form-control" placeholder="07XX XXX XXX" />
                 </div>
             </div>
 
-            <!-- House number — grouped dropdown by block -->
+           <!--photo upload-->
+            <div class="form-group">
+                <label>Visitor Photo <span style="color:var(--gray-400);font-weight:400;">(optional)</span></label>
+                <input type="file" name="visitorPhoto" accept="image/*" class="form-control"
+                       style="padding:0.5rem;" onchange="previewPhoto(this)" />
+                <img id="photoPreview" src="" style="display:none;width:80px;height:80px;
+                     border-radius:50%;object-fit:cover;margin-top:0.5rem;
+                     border:2px solid var(--blue-200);" />
+            </div>
+
+            <!--unit selection only occupied ones-->
             <div class="form-group">
                 <label asp-for="HouseNumber"></label>
                 <select asp-for="HouseNumber" class="form-control" id="houseSelect"
-                        onchange="autoDetectPurpose(this.value)">
-                    <option value="">— Select unit —</option>
-                    @foreach (var group in grouped)
+                        onchange="onUnitChange(this.value)">
+                    <option value="">— Select occupied unit —</option>
+                    @if (blockA.Any())
                     {
-                        <optgroup label="@group.Key">
-                            @foreach (var unit in group.Value)
+                        <optgroup label="Block A — Residential (@blockA.Count occupied)">
+                            @foreach (var u in blockA)
                             {
-                                <option value="@unit">@unit</option>
+                                <option value="@u.UnitNumber">@u.UnitNumber</option>
+                            }
+                        </optgroup>
+                    }
+                    @if (blockB.Any())
+                    {
+                        <optgroup label="Block B — Residential (@blockB.Count occupied)">
+                            @foreach (var u in blockB)
+                            {
+                                <option value="@u.UnitNumber">@u.UnitNumber</option>
+                            }
+                        </optgroup>
+                    }
+                    @if (blockC.Any())
+                    {
+                        <optgroup label="Block C — BnB (@blockC.Count occupied)">
+                            @foreach (var u in blockC)
+                            {
+                                <option value="@u.UnitNumber">@u.UnitNumber</option>
                             }
                         </optgroup>
                     }
                 </select>
                 <span asp-validation-for="HouseNumber" class="text-danger"></span>
-                <small id="blockLabel" style="color:var(--blue-600); font-size:0.75rem; margin-top:0.25rem; display:block;"></small>
+                <small id="unitInfo" style="font-size:0.75rem;margin-top:0.25rem;display:block;"></small>
             </div>
 
-            <!-- Purpose of visit -->
             <div class="form-group">
                 <label asp-for="PurposeOfVisit"></label>
                 <select asp-for="PurposeOfVisit" class="form-control" id="purposeSelect">
@@ -87,93 +103,89 @@
                 <span asp-validation-for="PurposeOfVisit" class="text-danger"></span>
             </div>
 
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
                 <div class="form-group">
                     <label asp-for="NumberOfOccupants"></label>
-                    <input asp-for="NumberOfOccupants" type="number"
-                           class="form-control" min="1" max="20" />
-                    <span asp-validation-for="NumberOfOccupants" class="text-danger"></span>
+                    <input asp-for="NumberOfOccupants" type="number" class="form-control" min="1" max="20" />
                 </div>
                 <div class="form-group">
                     <label asp-for="CarRegistration"></label>
-                    <input asp-for="CarRegistration" class="form-control"
-                           placeholder="e.g. KCA 123A (optional)" />
-                    <span asp-validation-for="CarRegistration" class="text-danger"></span>
+                    <input asp-for="CarRegistration" class="form-control" placeholder="KCA 123A (optional)" />
                 </div>
             </div>
 
-            <div style="display:flex; gap:0.75rem; margin-top:1rem;
-                        padding-top:1rem; border-top:1px solid var(--gray-100);">
-                <button type="submit" class="btn btn-primary" style="flex:1;">
-                    &#9989; Check In Visitor
-                </button>
+            <div style="display:flex;gap:0.75rem;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--gray-100);">
+                <button type="submit" class="btn btn-primary" style="flex:1;">&#9989; Check In</button>
                 <a asp-action="Index" class="btn btn-secondary">Cancel</a>
             </div>
         </form>
     </div>
 
-    <!-- Info panel -->
+<!--info panel-->
     <div>
-        <div class="panel" style="background:var(--blue-50); border-color:var(--blue-200); margin-bottom:1rem;">
-            <div class="panel-title" style="color:var(--blue-500);">&#127968; Building Layout</div>
-            <div style="font-size:0.83rem; color:var(--blue-700); line-height:2.1;">
+        <div class="panel" style="background:var(--blue-50);border-color:var(--blue-200);margin-bottom:1rem;">
+            <div class="panel-title" style="color:var(--blue-600);">&#127968; Building — Occupied Units</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;text-align:center;">
                 <div>
-                    <strong>Block A</strong> — Residential &nbsp;
-                    <span style="color:var(--gray-400);">A101–A610 (60 units)</span>
+                    <div style="font-size:1.5rem;font-weight:800;color:var(--blue-700);">@blockA.Count</div>
+                    <div style="font-size:0.72rem;color:var(--blue-500);">Block A</div>
                 </div>
                 <div>
-                    <strong>Block B</strong> — Residential &nbsp;
-                    <span style="color:var(--gray-400);">B101–B610 (60 units)</span>
+                    <div style="font-size:1.5rem;font-weight:800;color:var(--blue-700);">@blockB.Count</div>
+                    <div style="font-size:0.72rem;color:var(--blue-500);">Block B</div>
                 </div>
                 <div>
-                    <strong>Block C</strong> — BnB Units &nbsp;
-                    <span style="color:var(--gray-400);">C101–C610 (60 units)</span>
-                </div>
-                <div style="margin-top:0.5rem; font-size:0.78rem; color:var(--blue-500);">
-                    Unit format: [Block][Floor][Unit01–10]<br />
-                    e.g. A201 = Block A, Floor 2, Unit 1
+                    <div style="font-size:1.5rem;font-weight:800;color:var(--purple);">@blockC.Count</div>
+                    <div style="font-size:0.72rem;color:var(--purple);">Block C (BnB)</div>
                 </div>
             </div>
+            <div style="margin-top:0.75rem;font-size:0.78rem;color:var(--blue-600);text-align:center;">
+                Only occupied units shown. Vacant units are not selectable.
+            </div>
         </div>
-
-        <div class="panel" style="background:var(--warning-light); border-color:#fcd34d;">
-            <div class="panel-title" style="color:var(--warning-dark);">&#128274; Guard Checklist</div>
-            <ul style="font-size:0.82rem; color:var(--warning-dark); padding-left:1.2rem; line-height:2.1;">
+        <div class="panel" style="background:var(--warning-light);border-color:#fcd34d;">
+            <div class="panel-title" style="color:var(--warning-dark);">&#128274; Checklist</div>
+            <ul style="font-size:0.82rem;color:var(--warning-dark);padding-left:1.2rem;line-height:2.1;">
                 <li>Verify visitor's ID document</li>
-                <li>Confirm with resident before entry</li>
-                <li>For Block C — confirm BnB booking</li>
-                <li>Record car reg if arrived by vehicle</li>
-                <li>Note number of occupants accurately</li>
+                <li>Confirm resident is expecting them</li>
+                <li>Block C = BnB — confirm booking reference</li>
+                <li>Take a photo if possible</li>
+                <li>Record car registration if applicable</li>
             </ul>
         </div>
-
         <div class="panel">
             <a asp-controller="VisitorInvitations" asp-action="PendingList"
-               class="btn btn-primary" style="width:100%; justify-content:center;">
-                &#128203; Check Pre-Registered Visitors Instead
+               class="btn btn-primary" style="width:100%;justify-content:center;">
+                &#128203; Check Pre-Registered Instead
             </a>
         </div>
     </div>
 </div>
 
 <script>
-    function autoDetectPurpose(unit) {
-        var label  = document.getElementById('blockLabel');
+    function previewPhoto(input) {
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var img = document.getElementById('photoPreview');
+                img.src = e.target.result;
+                img.style.display = 'block';
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function onUnitChange(unit) {
+        var info    = document.getElementById('unitInfo');
         var purpose = document.getElementById('purposeSelect');
-
-        if (!unit) { label.textContent = ''; return; }
-
+        if (!unit) { info.textContent = ''; return; }
         var block = unit[0];
-        if (block === 'A') {
-            label.textContent = 'Block A — Residential';
-            label.style.color = 'var(--blue-600)';
-        } else if (block === 'B') {
-            label.textContent = 'Block B — Residential';
-            label.style.color = 'var(--blue-600)';
-        } else if (block === 'C') {
-            label.textContent = 'Block C — BnB Unit (auto-set purpose to BnB Stay)';
-            label.style.color = 'var(--success)';
-            purpose.value = 'BnB Stay';
+        if (block === 'C') {
+            info.innerHTML = '<span style="color:var(--purple);font-weight:600;">&#127970; BnB Unit — purpose auto-set to BnB Stay</span>';
+            purpose.value  = 'BnB Stay';
+        } else {
+            info.innerHTML = '<span style="color:var(--blue-600);">&#127968; Residential Unit — Block ' + block + '</span>';
+            if (purpose.value === 'BnB Stay') purpose.value = '';
         }
     }
 </script>
