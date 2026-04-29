@@ -1,0 +1,144 @@
+﻿@model MgeniTrack.Models.User
+@{
+    ViewData["Title"] = "User Details";
+    var role = Model.UserRoles?.FirstOrDefault(ur => ur.UserStatus == "Active");
+    var shift = role?.Shift;
+}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <h2>&#128100; User Details</h2>
+        <p>Full profile and activity history</p>
+    </div>
+    <div style="display:flex;gap:0.65rem;">
+        <a asp-controller="Users" asp-action="Edit" asp-route-id="@Model.UserId" class="btn btn-primary">&#9999; Edit</a>
+        <a asp-controller="Users" asp-action="Index" class="btn btn-secondary">&#8592; All Users</a>
+    </div>
+</div>
+
+<div class="panels-2col">
+    <!-- Profile Card -->
+    <div class="panel">
+        <div class="panel-title">&#128100; Profile</div>
+        <div style="display:flex;gap:1rem;align-items:center;margin-bottom:1.25rem;
+                    padding-bottom:1.25rem;border-bottom:1px solid var(--gray-100);">
+            <div class="avatar avatar-lg" style="width:56px;height:56px;font-size:1.1rem;">
+                @($"{Model.Firstname?[0]}{Model.Secondname?[0]}".ToUpper())
+            </div>
+            <div>
+                <div style="font-size:1.1rem;font-weight:700;color:var(--gray-900);">
+                    @Model.Firstname @Model.Secondname
+                </div>
+                <div style="font-size:0.82rem;color:var(--gray-400);">@Model.Email</div>
+                <div style="margin-top:0.3rem;display:flex;gap:0.4rem;flex-wrap:wrap;">
+                    <span class="badge badge-role">@(role?.Role?.RoleName ?? "No Role")</span>
+                    @if (shift != null)
+                    {
+                        <span class="badge @(shift == "Day" ? "badge-orange" : "badge-blue")">@shift Shift</span>
+                    }
+                    <span class="badge @(Model.UserStatus == "Active" ? "badge-active" : "badge-inactive")">
+                        @Model.UserStatus
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        @{
+            void Row(string label, string? val)
+            {
+                <div style="display:flex;padding:0.55rem 0;border-top:1px solid var(--gray-100);">
+                    <span style="width:140px;font-size:0.72rem;font-weight:600;text-transform:uppercase;
+                                         letter-spacing:0.06em;color:var(--gray-400);">@label</span>
+                    <span style="font-size:0.88rem;color:var(--gray-800);">@(val ?? "—")</span>
+                </div>
+            }
+        }
+
+        @{
+            Row("Phone", Model.PhoneNumber);
+        }
+        @{
+            Row("Gender", Model.Gender);
+        }
+        @{
+            Row("ID Number", Model.IdNumber);
+        }
+        @{
+            Row("Created", Model.CreatedAt?.ToString("dd MMM yyyy"));
+        }
+        @{
+            Row("Last Login", Model.LastLogin?.ToString("dd MMM yyyy HH:mm"));
+        }
+
+        @if (Model.Resident != null)
+        {
+            <div style="margin-top:1rem;padding:0.75rem;background:var(--blue-50);
+                            border-radius:var(--radius-md);border:1px solid var(--blue-100);">
+                <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;
+                                 letter-spacing:0.08em;color:var(--blue-500);margin-bottom:0.35rem;">
+                    &#127968; Resident Unit
+                </div>
+                <div style="font-size:1.1rem;font-weight:800;color:var(--blue-700);">
+                    @Model.Resident.HouseNumber
+                </div>
+                <div style="font-size:0.75rem;color:var(--blue-500);">
+                    @(Model.Resident.Unit?.UnitType ?? "Residential")
+                </div>
+            </div>
+        }
+
+        @if (Model.UserStatus == "Active")
+        {
+            <div style="margin-top:1.25rem;">
+                <form asp-action="DeactivateUser" asp-route-id="@Model.UserId" method="post"
+                      onsubmit="return confirm('Deactivate @Model.Firstname? They will lose system access.')">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-danger" style="width:100%;">
+                        &#128683; Deactivate User
+                    </button>
+                </form>
+            </div>
+        }
+    </div>
+
+    <!-- Activity -->
+    <div class="panel">
+        <div class="panel-title">&#128396; Recent Activity</div>
+        @if (Model.ActivityLogs?.Any() == true)
+        {
+            @foreach (var log in Model.ActivityLogs.OrderByDescending(l => l.TimeStamp).Take(15))
+            {
+                var (icon, col) = log.ActionType switch
+                {
+                    "Login" => ("&#128275;", "var(--success)"),
+                    "Logout" => ("&#128274;", "var(--gray-400)"),
+                    "CheckIn" => ("&#9989;", "var(--success)"),
+                    "CheckOut" => ("&#128682;", "var(--warning)"),
+                    "Create" => ("&#10133;", "var(--blue-500)"),
+                    _ => ("&#9679;", "var(--gray-400)")
+                };
+                <div style="display:flex;gap:0.65rem;align-items:flex-start;
+                                    padding:0.5rem 0;border-top:1px solid var(--gray-100);">
+                    <div style="width:24px;height:24px;border-radius:50%;background:var(--gray-100);
+                                        display:flex;align-items:center;justify-content:center;
+                                        font-size:0.68rem;flex-shrink:0;">
+                        @Html.Raw(icon)
+                    </div>
+                    <div style="flex:1;">
+                        <div style="font-size:0.82rem;color:var(--gray-700);">
+                            @(log.ActionDetails ?? log.ActionType)
+                        </div>
+                        <div style="font-size:0.7rem;color:var(--gray-400);">
+                            @(log.TimeStamp?.ToString("dd MMM yyyy HH:mm"))
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="empty">No activity recorded yet.</div>
+        }
+    </div>
+</div>
+

@@ -1,0 +1,124 @@
+﻿@model IEnumerable<MgeniTrack.Models.ActivityLog>
+@{
+    ViewData["Title"] = "Activity Logs";
+    int currentPage = ViewBag.CurrentPage ?? 1;
+    int totalPages  = ViewBag.TotalPages  ?? 1;
+}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <h2>&#128396; Activity Logs</h2>
+        <p>Full audit trail of all system actions</p>
+    </div>
+    <div style="display:flex;gap:0.65rem;">
+        <button onclick="window.print()" class="btn btn-secondary">&#128438; Print</button>
+        <a asp-action="Index" class="btn btn-secondary">&#8592; Dashboard</a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="panel" style="padding:1rem 1.35rem;margin-bottom:1.25rem;">
+    <form asp-action="ActivityLogs" method="get"
+          style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;">
+        <input type="text" name="search" value="@ViewBag.Search"
+               class="form-control" style="max-width:280px;"
+               placeholder="Search user, action, details..." />
+        <select name="actionType" class="form-control" style="max-width:180px;">
+            <option value="">All Actions</option>
+            <option value="Login" selected=@(ViewBag.ActionType == "Login"      ? "selected":"")>Login</option>
+            <option value="Logout" selected=@(ViewBag.ActionType == "Logout"     ? "selected":"")>Logout</option>
+            <option value="LoginFailed" selected=@(ViewBag.ActionType == "LoginFailed"? "selected":"")>Login Failed</option>
+            <option value="CheckIn" selected=@(ViewBag.ActionType == "CheckIn"    ? "selected":"")>Check In</option>
+            <option value="CheckOut" selected=@(ViewBag.ActionType == "CheckOut"   ? "selected":"")>Check Out</option>
+            <option value="Create" selected=@(ViewBag.ActionType == "Create"     ? "selected":"")>Create</option>
+            <option value="Update" selected=@(ViewBag.ActionType == "Update"     ? "selected":"")>Update</option>
+            <option value="Deactivate" selected=@(ViewBag.ActionType == "Deactivate" ? "selected":"")>Deactivate</option>
+            <option value="Report" selected=@(ViewBag.ActionType == "Report" ? "selected" : "")>Report</option>
+        </select>
+        <button type="submit" class="btn btn-primary">&#128269; Filter</button>
+        <a asp-action="ActivityLogs" class="btn btn-secondary">&#10005; Reset</a>
+    </form>
+</div>
+
+<div class="table-card">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Time</th><th>User</th><th>Action</th>
+                <th>Details</th><th>Entity</th><th>IP</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var log in Model)
+            {
+                var (icon, badgeClass) = log.ActionType switch {
+                    "Login"       => ("&#128275;", "badge-green"),
+                    "Logout"      => ("&#128274;", "badge-gray"),
+                    "LoginFailed" => ("&#10060;",  "badge-red"),
+                    "CheckIn"     => ("&#9989;",   "badge-green"),
+                    "CheckOut"    => ("&#128682;",  "badge-orange"),
+                    "Create"      => ("&#10133;",  "badge-blue"),
+                    "Update"      => ("&#9999;",   "badge-blue"),
+                    "Deactivate"  => ("&#128683;",  "badge-red"),
+                    "Report"      => ("&#128202;",  "badge-purple"),
+                    _             => ("&#9679;",   "badge-gray")
+                };
+                <tr>
+                    <td style="white-space:nowrap;font-size:0.78rem;color:var(--gray-500);">
+                        @(log.TimeStamp?.ToString("dd MMM yyyy") ?? "—")<br/>
+                        <strong style="color:var(--gray-700);">@(log.TimeStamp?.ToString("HH:mm:ss") ?? "")</strong>
+                    </td>
+                    <td>
+                        <strong>@(log.User?.Firstname ?? "System")</strong>
+                        <div style="font-size:0.72rem;color:var(--gray-400);">@(log.User?.Email ?? "")</div>
+                    </td>
+                    <td>
+                        <span class="badge @badgeClass">
+                            @Html.Raw(icon) @(log.ActionType ?? "—")
+                        </span>
+                    </td>
+                    <td style="font-size:0.82rem;max-width:280px;">@(log.ActionDetails ?? "—")</td>
+                    <td style="font-size:0.75rem;color:var(--gray-500);">
+                        @if (log.RelatedEntityType != null)
+                        {
+                            @log.RelatedEntityType
+                            if (log.RelatedEntityId.HasValue)
+                            { <span> #@log.RelatedEntityId</span> }
+                        }
+                        else { <span>—</span> }
+                    </td>
+                    <td style="font-size:0.72rem;color:var(--gray-400);">@(log.IpAddress ?? "—")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+@if (totalPages > 1)
+{
+    <div style="display:flex;justify-content:center;gap:0.5rem;margin-top:1.25rem;">
+        @for (int i = 1; i <= totalPages; i++)
+        {
+            <a asp-action="ActivityLogs"
+               asp-route-search="@ViewBag.Search"
+               asp-route-actionType="@ViewBag.ActionType"
+               asp-route-page="@i"
+               style="padding:0.35rem 0.75rem;border-radius:var(--radius-md);font-size:0.82rem;
+                      font-weight:600;text-decoration:none;
+                      background:@(i == currentPage ? "var(--blue-600)" : "var(--white)");
+                      color:@(i == currentPage ? "#fff" : "var(--gray-600)");
+                      border:1px solid @(i == currentPage ? "var(--blue-600)" : "var(--gray-200)");">
+                @i
+            </a>
+        }
+    </div>
+}
+
+<style>
+@@media print {
+    .sidebar, .topbar, .page-header .btn, form { display: none !important; }
+    .table-card { box-shadow: none; border: 1px solid #ddd; }
+    body { background: white !important; }
+}
+</style>
