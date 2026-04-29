@@ -103,7 +103,7 @@ namespace MgeniTrack.Controllers
             return RedirectToAction(nameof(Preview), new { id = report.ReportId });
         }
 
-        // ── Report preview (HTML view) ───────────────────────────
+        // ── Report preview (HTML view)
         public async Task<IActionResult> Preview(int id)
         {
             var report = await _context.Reports
@@ -132,7 +132,7 @@ namespace MgeniTrack.Controllers
             return View();
         }
 
-        // ── Download CSV for existing report ────────────────────
+        // ── Download CSV for existing report
         public async Task<IActionResult> Download(int id)
         {
             var report = await _context.Reports.FindAsync(id);

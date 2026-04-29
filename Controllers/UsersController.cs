@@ -60,7 +60,7 @@ namespace MgeniTrack.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(UserCreateViewModel model)
         {
-            // ✅ FIX: Validate HouseNumber if role is Resident
+            // Validate HouseNumber if role is Resident
             var role = await _context.Roles.FindAsync(model.SelectedRoleId);
             if (role != null && role.RoleName == "Resident" && string.IsNullOrWhiteSpace(model.HouseNumber))
             {
@@ -80,7 +80,7 @@ namespace MgeniTrack.Controllers
                 return View(model);
             }
 
-            // ✅ FIX: Get the currently logged-in user as the creator
+            //  Get the currently logged-in user as the creator
             var creatorEmail = User.FindFirstValue(ClaimTypes.Name);
             var creatorUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == creatorEmail);
             if (creatorUser == null)
@@ -117,7 +117,7 @@ namespace MgeniTrack.Controllers
             };
             _context.UserRoles.Add(userRole);
 
-            // If Resident → insert into Residents table
+            // If Resident- insert into Residents table
             if (role != null && role.RoleName == "Resident")
             {
                 var resident = new Resident
@@ -197,7 +197,7 @@ namespace MgeniTrack.Controllers
             user.Email = model.Email;
             user.PhoneNumber = model.PhoneNumber;
 
-            // ✅ Only update password if a new one was provided
+            // Only update password if a new one was provided
             if (!string.IsNullOrWhiteSpace(model.NewPassword))
             {
                 var hasher = new PasswordHasher<User>();
@@ -244,7 +244,7 @@ namespace MgeniTrack.Controllers
             var user = await _context.Users.FindAsync(id);
             if (user != null)
             {
-                // ✅ Soft delete — set status to Inactive instead of deleting
+                // set status to Inactive instead of deleting(soft delete)
                 user.UserStatus = "Inactive";
                 await _context.SaveChangesAsync();
             }

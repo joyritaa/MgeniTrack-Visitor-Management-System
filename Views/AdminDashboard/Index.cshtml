@@ -5,14 +5,14 @@
 <div class="page-header">
     <div class="page-header-left">
         <h2>&#128274; Admin Dashboard</h2>
-        <p>System overview — @DateTime.Now.ToString("dddd, dd MMMM yyyy")</p>
+        <p>@DateTime.Now.ToString("dddd, dd MMMM yyyy")</p>
     </div>
-    <a asp-controller="Reports" asp-action="Generate" class="btn btn-primary">
-        &#128202; Generate Report
-    </a>
+    <div style="display:flex;gap:0.65rem;">
+        <a asp-controller="Reports" asp-action="Generate" class="btn btn-primary">&#128202; Generate Report</a>
+        <a asp-action="ActivityLogs" class="btn btn-secondary">&#128396; Activity Logs</a>
+    </div>
 </div>
 
-<!-- Stats -->
 <div class="stats-grid">
     <div class="stat-card green">
         <div class="stat-icon">&#128100;</div>
@@ -24,7 +24,7 @@
     </div>
     <div class="stat-card orange">
         <div class="stat-icon">&#128737;</div>
-        <div class="stat-info"><div class="value">@ViewBag.TotalGuards</div><div class="label">Active Guards</div></div>
+        <div class="stat-info"><div class="value">@ViewBag.TotalGuards</div><div class="label">Guards</div></div>
     </div>
     <div class="stat-card teal">
         <div class="stat-icon">&#128118;</div>
@@ -40,8 +40,30 @@
     </div>
 </div>
 
-<!-- Row 1: Recent Visits + New Users -->
+<!-- Unit occupancy bar -->
+@{
+    int occupied = ViewBag.OccupiedUnits ?? 0;
+    int total = ViewBag.TotalUnits ?? 180;
+    int pct = total > 0 ? (int)((occupied / (double)total) * 100) : 0;
+}
+<div class="panel" style="margin-bottom:1.25rem;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.65rem;">
+        <span style="font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-400);">
+            &#127968; Unit Occupancy
+        </span>
+        <span style="font-size:0.85rem;font-weight:700;color:var(--blue-700);">
+            @occupied / @total units occupied (@pct%)
+        </span>
+    </div>
+    <div style="background:var(--gray-100);border-radius:20px;height:10px;overflow:hidden;">
+        <div style="width:@pct%;height:100%;background:linear-gradient(90deg,var(--blue-500),var(--blue-400));border-radius:20px;transition:width 0.5s;"></div>
+    </div>
+</div>
+
 <div class="panels-2col">
+
+
+    <!-- Recent Visits -->
     <div class="panel">
         <div class="panel-title">&#128337; Recent Visits</div>
         @{
@@ -50,21 +72,21 @@
         @if (recentVisits != null && recentVisits.Any())
         {
             <table class="data-table">
-                <thead>
-                    <tr><th>Visitor</th><th>House</th><th>Time In</th><th>Status</th></tr>
-                </thead>
+                <thead><tr><th>Visitor</th><th>House</th><th>Time In</th><th>Status</th></tr></thead>
                 <tbody>
                     @foreach (var v in recentVisits)
                     {
                         <tr>
-                            <td><strong>@(v.Visitor?.FullName ?? "—")</strong></td>
-                            <td>@(v.HouseNumber ?? "—")</td>
-                            <td>@(v.TimeIn?.ToString("dd MMM, HH:mm") ?? "—")</td>
                             <td>
-                                <span class="badge @(v.VisitStatus == "CheckedIn" ? "badge-in" : "badge-out")">
-                                    @v.VisitStatus
-                                </span>
+                                @if (!string.IsNullOrEmpty(v.Visitor?.PhotoUrl))
+                                {
+                                    <img src="@v.Visitor.PhotoUrl" style="width:24px;height:24px;border-radius:50%;object-fit:cover;margin-right:0.35rem;vertical-align:middle;" />
+                                }
+                                <strong>@(v.Visitor?.FullName ?? "—")</strong>
                             </td>
+                            <td><span class="badge @(v.HouseNumber?.StartsWith("C") == true ? "badge-purple" : "badge-blue")">@(v.HouseNumber ?? "—")</span></td>
+                            <td>@(v.TimeIn?.ToString("dd MMM, HH:mm") ?? "—")</td>
+                            <td><span class="badge @(v.VisitStatus == "CheckedIn" ? "badge-in" : "badge-out")">@v.VisitStatus</span></td>
                         </tr>
                     }
                 </tbody>
@@ -77,8 +99,12 @@
         }
     </div>
 
+    <!-- Recent Users -->
     <div class="panel">
-        <div class="panel-title">&#127381; Recent Users</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:0.85rem;margin-bottom:1rem;border-bottom:1px solid var(--gray-100);">
+            <span class="panel-title" style="border:none;padding:0;margin:0;">&#127381; Recent Users</span>
+            <a asp-controller="Users" asp-action="Create" style="font-size:0.78rem;color:var(--blue-600);font-weight:600;">+ Add User</a>
+        </div>
         @{
             var recentUsers = ViewBag.RecentUsers as List<MgeniTrack.Models.User>;
         }
@@ -86,15 +112,17 @@
         {
             @foreach (var u in recentUsers)
             {
-                var initials = (u.Firstname?.Length > 0 ? u.Firstname[0].ToString() : "") +
-                (u.Secondname?.Length > 0 ? u.Secondname[0].ToString() : "");
+                var initials = $"{u.Firstname?[0]}{u.Secondname?[0]}".ToUpper();
                 var role = u.UserRoles?.FirstOrDefault(ur => ur.UserStatus == "Active")?.Role?.RoleName ?? "—";
+                var shift = u.UserRoles?.FirstOrDefault(ur => ur.UserStatus == "Active")?.Shift;
                 <div class="user-row">
-                    <div class="avatar avatar-md">@initials.ToUpper()</div>
-                    <div class="user-info">
+                    <div class="avatar avatar-md">@initials</div>
+                    <div class="user-info" style="flex:1;">
                         <div class="name">@u.Firstname @u.Secondname</div>
-                        <div class="role">@role</div>
+                        <div class="role">@role @(shift != null ? $"· {shift} shift" : "")</div>
                     </div>
+                    <a asp-action="UserDetails" asp-route-id="@u.UserId"
+                       style="font-size:0.75rem;color:var(--blue-600);">View</a>
                 </div>
             }
         }
@@ -105,84 +133,60 @@
     </div>
 </div>
 
-<!-- Row 2: Activity Logs + Recent Reports -->
 <div class="panels-2col">
-
     <!-- Activity Logs -->
     <div class="panel">
-        <div style="display:flex; justify-content:space-between; align-items:center;
-                    padding-bottom:0.85rem; margin-bottom:1rem;
-                    border-bottom:1px solid var(--gray-100);">
-            <span style="font-size:0.73rem; font-weight:700; text-transform:uppercase;
-                         letter-spacing:0.1em; color:var(--gray-400);">
-                &#128396; Activity Logs
-            </span>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:0.85rem;margin-bottom:1rem;border-bottom:1px solid var(--gray-100);">
+            <span class="panel-title" style="border:none;padding:0;margin:0;">&#128396; Recent Activity</span>
+            <a asp-action="ActivityLogs" style="font-size:0.78rem;color:var(--blue-600);font-weight:600;">View All →</a>
         </div>
         @{
             var logs = ViewBag.ActivityLogs as List<MgeniTrack.Models.ActivityLog>;
         }
         @if (logs != null && logs.Any())
         {
-            @foreach (var log in logs)
+            @foreach (var log in logs.Take(12))
             {
-                var icon = log.ActionType switch
+                var (icon, color) = log.ActionType switch
                 {
-                    "Login" => "&#128275;",
-                    "Logout" => "&#128274;",
-                    "CheckIn" => "&#9989;",
-                    "CheckOut" => "&#128682;",
-                    "Create" => "&#10133;",
-                    "Update" => "&#9999;",
-                    "Delete" => "&#128465;",
-                    _ => "&#9679;"
+                    "Login" => ("&#128275;", "var(--success)"),
+                    "Logout" => ("&#128274;", "var(--gray-400)"),
+                    "LoginFailed" => ("&#10060;", "var(--danger)"),
+                    "CheckIn" => ("&#9989;", "var(--success)"),
+                    "CheckOut" => ("&#128682;", "var(--warning)"),
+                    "Create" => ("&#10133;", "var(--blue-500)"),
+                    "Update" => ("&#9999;", "var(--blue-500)"),
+                    "Deactivate" => ("&#128683;", "var(--danger)"),
+                    "Report" => ("&#128202;", "var(--purple)"),
+                    _ => ("&#9679;", "var(--gray-400)")
                 };
-                <div style="display:flex; gap:0.75rem; align-items:flex-start;
-                                    padding:0.6rem 0; border-top:1px solid var(--gray-100);">
-                    <div style="width:28px; height:28px; border-radius:50%;
-                                        background:var(--blue-100); display:flex;
-                                        align-items:center; justify-content:center;
-                                        font-size:0.75rem; flex-shrink:0;">
+                <div style="display:flex;gap:0.65rem;align-items:flex-start;padding:0.55rem 0;border-top:1px solid var(--gray-100);">
+                    <div style="width:26px;height:26px;border-radius:50%;background:var(--gray-100);display:flex;align-items:center;justify-content:center;font-size:0.7rem;flex-shrink:0;">
                         @Html.Raw(icon)
                     </div>
-                    <div style="flex:1; min-width:0;">
-                        <div style="font-size:0.83rem; font-weight:600; color:var(--gray-800);">
-                            @(log.User?.Firstname ?? "System")
-                            <span style="font-weight:400; color:var(--gray-500);">
-                                — @(log.ActionType ?? "Action")
-                            </span>
-                        </div>
-                        <div style="font-size:0.75rem; color:var(--gray-400); margin-top:0.1rem;">
-                            @(log.ActionDetails ?? log.RelatedEntityType ?? "")
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-size:0.82rem;color:var(--gray-800);">
+                            <strong>@(log.User?.Firstname ?? "System")</strong>
+                            <span style="color:var(--gray-500);font-weight:400;"> — @(log.ActionDetails ?? log.ActionType)</span>
                         </div>
                     </div>
-                    <div style="font-size:0.72rem; color:var(--gray-400); white-space:nowrap; flex-shrink:0;">
-                        @(log.TimeStamp?.ToString("dd MMM HH:mm") ?? "—")
+                    <div style="font-size:0.7rem;color:var(--gray-400);white-space:nowrap;flex-shrink:0;">
+                        @(log.TimeStamp?.ToString("dd MMM HH:mm"))
                     </div>
                 </div>
             }
         }
         else
         {
-            <div class="empty">
-                <span class="empty-icon">&#128396;</span>
-                No activity logs yet. Logs are recorded automatically as users interact with the system.
-            </div>
+            <div class="empty"><span class="empty-icon">&#128396;</span>No activity yet. Actions will appear here as users interact with the system.</div>
         }
     </div>
 
     <!-- Recent Reports -->
     <div class="panel">
-        <div style="display:flex; justify-content:space-between; align-items:center;
-                    padding-bottom:0.85rem; margin-bottom:1rem;
-                    border-bottom:1px solid var(--gray-100);">
-            <span style="font-size:0.73rem; font-weight:700; text-transform:uppercase;
-                         letter-spacing:0.1em; color:var(--gray-400);">
-                &#128202; Recent Reports
-            </span>
-            <a asp-controller="Reports" asp-action="Generate"
-               style="font-size:0.78rem; font-weight:600; color:var(--blue-600);">
-                + New
-            </a>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:0.85rem;margin-bottom:1rem;border-bottom:1px solid var(--gray-100);">
+            <span class="panel-title" style="border:none;padding:0;margin:0;">&#128202; Recent Reports</span>
+            <a asp-controller="Reports" asp-action="Generate" style="font-size:0.78rem;color:var(--blue-600);font-weight:600;">+ Generate</a>
         </div>
         @{
             var reports = ViewBag.RecentReports as List<MgeniTrack.Models.Report>;
@@ -191,21 +195,20 @@
         {
             @foreach (var r in reports)
             {
-                <div style="display:flex; justify-content:space-between; align-items:center;
-                                    padding:0.65rem 0; border-top:1px solid var(--gray-100);">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:0.65rem 0;border-top:1px solid var(--gray-100);">
                     <div>
-                        <div style="font-size:0.85rem; font-weight:600; color:var(--gray-800);">
-                            @(r.ReportType ?? "Report")
-                        </div>
-                        <div style="font-size:0.73rem; color:var(--gray-400);">
+                        <div style="font-size:0.85rem;font-weight:600;color:var(--gray-800);">@(r.ReportType ?? "Report")</div>
+                        <div style="font-size:0.72rem;color:var(--gray-400);">
                             @(r.DateFrom?.ToString("dd MMM")) – @(r.DateTo?.ToString("dd MMM yyyy"))
                             &nbsp;•&nbsp; @(r.TotalCheckIns ?? 0) check-ins
                         </div>
                     </div>
-                    <a asp-controller="Reports" asp-action="Preview" asp-route-id="@r.ReportId"
-                       class="btn btn-secondary" style="padding:0.3rem 0.7rem; font-size:0.75rem;">
-                        View
-                    </a>
+                    <div style="display:flex;gap:0.4rem;">
+                        <a asp-controller="Reports" asp-action="Preview" asp-route-id="@r.ReportId"
+                           class="btn btn-secondary" style="padding:0.28rem 0.65rem;font-size:0.72rem;">View</a>
+                        <a asp-controller="Reports" asp-action="Download" asp-route-id="@r.ReportId"
+                           class="btn btn-secondary" style="padding:0.28rem 0.65rem;font-size:0.72rem;">&#8595;</a>
+                    </div>
                 </div>
             }
         }
@@ -213,10 +216,8 @@
         {
             <div class="empty">
                 <span class="empty-icon">&#128202;</span>
-                No reports yet.
                 <div style="margin-top:0.5rem;">
-                    <a asp-controller="Reports" asp-action="Generate" class="btn btn-primary"
-                       style="font-size:0.8rem;">Generate First Report</a>
+                    <a asp-controller="Reports" asp-action="Generate" class="btn btn-primary" style="font-size:0.8rem;">Generate First Report</a>
                 </div>
             </div>
         }
