@@ -1,5 +1,8 @@
 ﻿@{
     ViewData["Title"] = "My Dashboard";
+    int unread = ViewBag.UnreadNotifications ?? 0;
+    string unitType = ViewBag.UnitType ?? "Residential";
+    bool isBnb = unitType == "BnB";
 }
 
 <div class="page-header">
@@ -7,66 +10,136 @@
         <h2>&#127968; My Dashboard</h2>
         <p>Manage your visitors and invitations</p>
     </div>
+    @if (unread > 0)
+    {
+        <div style="background:var(--danger);color:#fff;padding:0.4rem 1rem;
+                        border-radius:20px;font-size:0.82rem;font-weight:700;">
+            &#128276; @unread new notification@(unread > 1 ? "s" : "")
+        </div>
+    }
 </div>
 
-<div class="house-banner">
+<!-- Unit banner -->
+<div style="background:linear-gradient(135deg,@(isBnb ? "var(--purple),#7c3aed" : "var(--blue-700),var(--blue-500)"));
+            border-radius:var(--radius-lg);padding:1.35rem 1.5rem;
+            margin-bottom:1.5rem;color:#fff;
+            display:flex;align-items:center;justify-content:space-between;
+            box-shadow:0 4px 18px rgba(37,99,235,0.3);">
     <div>
-        <div class="label">Your Unit</div>
-        <div class="house-num">House @ViewBag.HouseNumber</div>
+        <div style="font-size:0.7rem;opacity:0.75;text-transform:uppercase;letter-spacing:0.1em;">Your Unit</div>
+        <div style="font-size:2rem;font-weight:800;line-height:1.1;">@ViewBag.HouseNumber</div>
+        <div style="font-size:0.78rem;opacity:0.8;margin-top:0.2rem;">
+            @(isBnb ? "&#127970; BnB Unit" : "&#127968; Residential") &nbsp;•&nbsp; @ViewBag.FloorInfo
+        </div>
     </div>
-    <div class="house-icon">&#127968;</div>
+    <div style="font-size:3rem;opacity:0.35;">@(isBnb ? "&#127970;" : "&#127968;")</div>
 </div>
 
 <div class="stats-grid">
     <div class="stat-card blue">
         <div class="stat-icon">&#128140;</div>
-        <div class="stat-info">
-            <div class="value">@ViewBag.TotalInvitations</div>
-            <div class="label">Total Invitations</div>
-        </div>
+        <div class="stat-info"><div class="value">@ViewBag.TotalInvitations</div><div class="label">Invitations</div></div>
     </div>
     <div class="stat-card green">
         <div class="stat-icon">&#128118;</div>
-        <div class="stat-info">
-            <div class="value">@ViewBag.ActiveVisitors</div>
-            <div class="label">Visitors Arrived</div>
-        </div>
+        <div class="stat-info"><div class="value">@ViewBag.ActiveVisitors</div><div class="label">Visitors Arrived</div></div>
+    </div>
+    <div class="stat-card @(unread > 0 ? "red" : "teal")">
+        <div class="stat-icon">&#128276;</div>
+        <div class="stat-info"><div class="value">@unread</div><div class="label">Unread Alerts</div></div>
     </div>
 </div>
 
 <div class="quick-actions">
-    <a asp-controller="VisitorInvitations" asp-action="Create" class="btn btn-primary">&#43; Invite a Visitor</a>
+    <a asp-controller="VisitorInvitations" asp-action="Create" class="btn btn-primary">&#43; Invite Visitor</a>
     <a asp-controller="VisitorInvitations" asp-action="Index" class="btn btn-secondary">&#128203; My Invitations</a>
 </div>
 
-<div class="panel">
-    <div class="panel-title">&#128337; Recent Invitations</div>
-    @{
-        var recent = ViewBag.RecentVisits as List<MgeniTrack.Models.VisitorInvitation>;
-    }
-    @if (recent != null && recent.Any())
-    {
-        @foreach (var inv in recent)
+<div class="panels-2col">
+    <!-- Notifications -->
+    <div class="panel">
+        <div class="panel-title">&#128276; Notifications</div>
+        @{
+            var notifications = ViewBag.Notifications as List<MgeniTrack.Models.Notification>;
+        }
+        @if (notifications?.Any() == true)
         {
-            var bc = inv.VisitStatus switch
+            @foreach (var n in notifications)
             {
-                "Pending" => "badge-pending",
-                "Arrived" => "badge-arrived",
-                "Expired" => "badge-expired",
-                "Cancelled" => "badge-cancelled",
-                _ => "badge-pending"
-            };
-            <div class="inv-row">
-                <div>
-                    <div class="inv-name">@inv.VisitorName</div>
-                    <div class="inv-meta">@inv.PurposeOfVisit &nbsp;•&nbsp; @(inv.ExpectedDate?.ToString("dd MMM yyyy") ?? "No date")</div>
+                var (icon, bg) = n.NotificationType switch
+                {
+                    "VisitorArrived" => ("&#128118;", "var(--success-light)"),
+                    "Invited" => ("&#128140;", "var(--blue-50)"),
+                    "CheckedOut" => ("&#128682;", "var(--warning-light)"),
+                    _ => ("&#128276;", "var(--gray-50)")
+                };
+                <div style="display:flex;gap:0.75rem;align-items:flex-start;
+                                    padding:0.75rem;border-radius:var(--radius-md);
+                                    margin-bottom:0.5rem;
+                                    background:@(n.IsRead == false ? bg : "transparent");
+                                    border:1px solid @(n.IsRead == false ? "var(--gray-200)" : "transparent");">
+                    <div style="font-size:1.1rem;flex-shrink:0;">@Html.Raw(icon)</div>
+                    <div style="flex:1;">
+                        <div style="font-size:0.85rem;font-weight:@(n.IsRead == false ? "700" : "500");
+                                            color:var(--gray-800);">
+                            @(n.Title ?? "Notification")
+                        </div>
+                        <div style="font-size:0.78rem;color:var(--gray-500);margin-top:0.1rem;">@n.Message</div>
+                        <div style="font-size:0.7rem;color:var(--gray-400);margin-top:0.2rem;">
+                            @(n.CreatedAt?.ToString("dd MMM yyyy HH:mm"))
+                        </div>
+                    </div>
+                    @if (n.IsRead == false)
+                    {
+                        <div style="width:8px;height:8px;border-radius:50%;background:var(--blue-500);flex-shrink:0;margin-top:4px;"></div>
+                    }
                 </div>
-                <span class="badge @bc">@inv.VisitStatus</span>
+            }
+        }
+        else
+        {
+            <div class="empty">
+                <span class="empty-icon">&#128276;</span>
+                No notifications yet. You'll be alerted here when visitors arrive.
             </div>
         }
-    }
-    else
-    {
-        <div class="empty">You haven't created any invitations yet.</div>
-    }
+    </div>
+
+    <!-- Recent Invitations -->
+    <div class="panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;
+                    padding-bottom:0.85rem;margin-bottom:1rem;border-bottom:1px solid var(--gray-100);">
+            <span class="panel-title" style="border:none;padding:0;margin:0;">&#128337; Recent Invitations</span>
+            <a asp-controller="VisitorInvitations" asp-action="Create"
+               style="font-size:0.78rem;color:var(--blue-600);font-weight:600;">+ Invite</a>
+        </div>
+        @{
+            var recent = ViewBag.RecentVisits as List<MgeniTrack.Models.VisitorInvitation>;
+        }
+        @if (recent?.Any() == true)
+        {
+            @foreach (var inv in recent)
+            {
+                var bc = inv.VisitStatus switch
+                {
+                    "Pending" => "badge-pending",
+                    "Arrived" => "badge-arrived",
+                    "Expired" => "badge-expired",
+                    "Cancelled" => "badge-cancelled",
+                    _ => "badge-gray"
+                };
+                <div class="inv-row">
+                    <div>
+                        <div class="inv-name">@inv.VisitorName</div>
+                        <div class="inv-meta">@inv.PurposeOfVisit &nbsp;•&nbsp; @(inv.ExpectedDate?.ToString("dd MMM yyyy") ?? "No date")</div>
+                    </div>
+                    <span class="badge @bc">@inv.VisitStatus</span>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="empty">No invitations yet.</div>
+        }
+    </div>
 </div>

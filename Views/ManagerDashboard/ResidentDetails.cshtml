@@ -1,0 +1,102 @@
+﻿@model MgeniTrack.Models.Resident
+@{
+    ViewData["Title"] = "Resident Details";
+}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <h2>&#127968; Resident Details</h2>
+        <p>@Model.User?.Firstname @Model.User?.Secondname — Unit @Model.HouseNumber</p>
+    </div>
+    <a asp-action="Residents" class="btn btn-secondary">&#8592; All Residents</a>
+</div>
+
+<div class="panels-2col">
+    <div class="panel">
+        <div class="panel-title">&#128100; Profile</div>
+        <div style="display:flex;gap:1rem;align-items:center;margin-bottom:1.25rem;padding-bottom:1.25rem;border-bottom:1px solid var(--gray-100);">
+            <div class="avatar avatar-lg" style="width:52px;height:52px;font-size:1rem;">
+                @($"{Model.User?.Firstname?[0]}{Model.User?.Secondname?[0]}".ToUpper())
+            </div>
+            <div>
+                <div style="font-size:1.05rem;font-weight:700;color:var(--gray-900);">@Model.User?.Firstname @Model.User?.Secondname</div>
+                <div style="font-size:0.82rem;color:var(--gray-400);">@Model.User?.Email</div>
+            </div>
+        </div>
+
+        @{
+            void InfoRow(string label, string? val)
+            {
+                <div style="display:flex;padding:0.5rem 0;border-top:1px solid var(--gray-100);">
+                    <span style="width:130px;font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--gray-400);">@label</span>
+                    <span style="font-size:0.87rem;color:var(--gray-800);">@(val ?? "—")</span>
+                </div>
+            }
+        }
+        @{
+            InfoRow("Phone", Model.User?.PhoneNumber);
+        }
+        @{
+            InfoRow("Gender", Model.User?.Gender);
+        }
+        @{
+            InfoRow("ID No.", Model.User?.IdNumber);
+        }
+
+        <div style="margin-top:1rem;padding:0.85rem;background:@(Model.HouseNumber.StartsWith("C") ? "var(--purple-light)" : "var(--blue-50)");border-radius:var(--radius-md);border:1px solid @(Model.HouseNumber.StartsWith("C") ? "var(--purple)" : "var(--blue-100)");">
+            <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:@(Model.HouseNumber.StartsWith("C") ? "var(--purple)" : "var(--blue-500)");margin-bottom:0.25rem;">&#127968; Assigned Unit</div>
+            <div style="font-size:1.3rem;font-weight:800;color:@(Model.HouseNumber.StartsWith("C") ? "#5b21b6" : "var(--blue-700)");">@Model.HouseNumber</div>
+            <div style="font-size:0.75rem;color:var(--gray-500);">@(Model.Unit?.UnitType ?? "Residential") · Floor @(Model.Unit?.FloorNumber) · Unit @(Model.Unit?.UnitPosition)</div>
+        </div>
+    </div>
+
+    <div>
+        <div class="panel" style="margin-bottom:1.25rem;">
+            <div class="panel-title">&#128203; Invitations (@(Model.VisitorInvitations?.Count ?? 0))</div>
+            @if (Model.VisitorInvitations?.Any() == true)
+            {
+                @foreach (var inv in Model.VisitorInvitations.OrderByDescending(i => i.CreatedAt).Take(8))
+                {
+                    var bc = inv.VisitStatus switch
+                    {
+                        "Pending" => "badge-pending",
+                        "Arrived" => "badge-arrived",
+                        "Expired" => "badge-expired",
+                        "Cancelled" => "badge-cancelled",
+                        _ => "badge-gray"
+                    };
+                    <div class="inv-row">
+                        <div>
+                            <div class="inv-name">@inv.VisitorName</div>
+                            <div class="inv-meta">@inv.PurposeOfVisit &nbsp;•&nbsp; @(inv.ExpectedDate?.ToString("dd MMM yyyy") ?? "—")</div>
+                        </div>
+                        <span class="badge @bc">@inv.VisitStatus</span>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="empty">No invitations created.</div>
+            }
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">&#128276; Notifications (@(Model.Notifications?.Count ?? 0))</div>
+            @if (Model.Notifications?.Any() == true)
+            {
+                @foreach (var n in Model.Notifications.OrderByDescending(n => n.CreatedAt).Take(6))
+                {
+                    <div style="padding:0.55rem 0;border-top:1px solid var(--gray-100);">
+                        <div style="font-size:0.83rem;font-weight:600;color:var(--gray-800);">@(n.Title ?? "Notification")</div>
+                        <div style="font-size:0.78rem;color:var(--gray-500);">@n.Message</div>
+                        <div style="font-size:0.7rem;color:var(--gray-400);margin-top:0.2rem;">@(n.CreatedAt?.ToString("dd MMM HH:mm"))</div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="empty">No notifications.</div>
+            }
+        </div>
+    </div>
+</div>

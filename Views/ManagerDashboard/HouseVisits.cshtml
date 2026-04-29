@@ -1,0 +1,61 @@
+﻿
+@model IEnumerable<MgeniTrack.Models.Visit>
+@{
+    ViewData["Title"] = "House Visits";
+}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <h2>&#127968; House Visits — Blocks A &amp; B</h2>
+        <p>Residential visits to Block A and Block B units</p>
+    </div>
+    <a asp-action="Index" class="btn btn-secondary">&#8592; Dashboard</a>
+</div>
+
+<div class="panel" style="padding:1rem 1.35rem;margin-bottom:1.25rem;">
+    <form asp-action="HouseVisits" method="get" style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;">
+        <input type="text" name="search" value="@ViewBag.Search" class="form-control"
+               style="max-width:280px;" placeholder="Visitor name or unit..." />
+        <select name="block" class="form-control" style="max-width:160px;">
+            <option value="All" selected=@(ViewBag.Block == "All" ? "selected":"")>All (A &amp; B)</option>
+            <option value="A" selected=@(ViewBag.Block == "A" ? "selected":"")>Block A</option>
+            <option value="B" selected=@(ViewBag.Block == "B" ? "selected":"")>Block B</option>
+        </select>
+        <button type="submit" class="btn btn-primary">&#128269; Filter</button>
+        <a asp-action="HouseVisits" class="btn btn-secondary">&#10005; Reset</a>
+    </form>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="panel"><div class="empty"><span class="empty-icon">&#127968;</span>No house visits found.</div></div>
+}
+else
+{
+    <div class="table-card">
+        <table class="data-table">
+            <thead>
+                <tr><th>Visitor</th><th>Unit</th><th>Purpose</th><th>Occupants</th><th>Check-In</th><th>Check-Out</th><th>Duration</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var v in Model)
+                {
+                    var dur = v.VisitDuration.HasValue ? (v.VisitDuration.Value >= 60 ? $"{v.VisitDuration.Value/60}h {v.VisitDuration.Value%60}m" : $"{v.VisitDuration.Value}m") : (v.VisitStatus == "CheckedIn" && v.TimeIn.HasValue ? $"{(int)(DateTime.Now - v.TimeIn.Value).TotalMinutes}m" : "—");
+                    <tr>
+                        <td>
+                            <strong>@(v.Visitor?.FullName ?? "—")</strong>
+                            <div style="font-size:0.72rem;color:var(--gray-400);">@(v.Visitor?.ContactNumber ?? "")</div>
+                        </td>
+                        <td><span class="badge badge-blue">@(v.HouseNumber ?? "—")</span></td>
+                        <td>@(v.PurposeOfVisit ?? "—")</td>
+                        <td style="text-align:center;">@(v.NumberOfOccupants ?? 1)</td>
+                        <td style="font-size:0.8rem;">@(v.TimeIn?.ToString("dd MMM, HH:mm") ?? "—")</td>
+                        <td style="font-size:0.8rem;">@(v.TimeOut?.ToString("dd MMM, HH:mm") ?? "—")</td>
+                        <td><span class="duration">@dur</span></td>
+                        <td><span class="badge @(v.VisitStatus == "CheckedIn" ? "badge-in" : "badge-out")">@(v.VisitStatus == "CheckedIn" ? "Inside" : "Checked Out")</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

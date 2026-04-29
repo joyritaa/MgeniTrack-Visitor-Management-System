@@ -1,0 +1,71 @@
+﻿@model IEnumerable<MgeniTrack.Models.Resident>
+@{
+    ViewData["Title"] = "Residents";
+}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <h2>&#128101; Residents</h2>
+        <p>All registered residents and their units</p>
+    </div>
+    <a asp-action="Index" class="btn btn-secondary">&#8592; Dashboard</a>
+</div>
+
+<div class="panel" style="padding:1rem 1.35rem;margin-bottom:1.25rem;">
+    <form asp-action="Residents" method="get" style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;">
+        <input type="text" name="search" value="@ViewBag.Search" class="form-control"
+               style="max-width:280px;" placeholder="Name, email, unit..." />
+        <select name="block" class="form-control" style="max-width:160px;">
+            <option value="All">All Blocks</option>
+            <option value="A" selected=@(ViewBag.Block == "A" ? "selected":"")>Block A (Residential)</option>
+            <option value="B" selected=@(ViewBag.Block == "B" ? "selected":"")>Block B (Residential)</option>
+            <option value="C" selected=@(ViewBag.Block == "C" ? "selected":"")>Block C (BnB)</option>
+        </select>
+        <button type="submit" class="btn btn-primary">&#128269; Search</button>
+        <a asp-action="Residents" class="btn btn-secondary">&#10005; Reset</a>
+    </form>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="panel"><div class="empty"><span class="empty-icon">&#128101;</span>No residents found.</div></div>
+}
+else
+{
+    <div class="table-card">
+        <table class="data-table">
+            <thead>
+                <tr><th>Resident</th><th>Unit</th><th>Type</th><th>Email</th><th>Phone</th><th>Invitations</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Model)
+                {
+                    <tr>
+                        <td>
+                            <div class="avatar avatar-sm" style="display:inline-flex;margin-right:0.5rem;">
+                                @($"{r.User?.Firstname?[0]}{r.User?.Secondname?[0]}".ToUpper())
+                            </div>
+                            <strong>@r.User?.Firstname @r.User?.Secondname</strong>
+                        </td>
+                        <td>
+                            <span class="badge @(r.HouseNumber.StartsWith("C") ? "badge-purple" : "badge-blue")">
+                                @r.HouseNumber
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge @(r.Unit?.UnitType == "BnB" ? "badge-purple" : "badge-gray")">
+                                @(r.Unit?.UnitType ?? "Residential")
+                            </span>
+                        </td>
+                        <td style="font-size:0.82rem;">@(r.User?.Email ?? "—")</td>
+                        <td style="font-size:0.82rem;">@(r.User?.PhoneNumber ?? "—")</td>
+                        <td style="text-align:center;">@(r.VisitorInvitations?.Count ?? 0)</td>
+                        <td class="table-actions">
+                            <a asp-action="ResidentDetails" asp-route-id="@r.ResidentId" class="detail">View</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
