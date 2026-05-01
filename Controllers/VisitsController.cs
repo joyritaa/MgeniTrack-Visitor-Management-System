@@ -21,7 +21,11 @@ namespace MgeniTrack.Controllers
         // GET: Visits
         public async Task<IActionResult> Index()
         {
-            var mgenitrackContext = _context.Visits.Include(v => v.CheckedInByNavigation).Include(v => v.CheckedOutByNavigation).Include(v => v.Invitation).Include(v => v.Visitor);
+            var mgenitrackContext = _context.Visits
+                .Include(v => v.CheckedInByNavigation)
+                .Include(v => v.CheckedOutByNavigation)
+                .Include(v => v.Invitation)
+                .Include(v => v.Visitor);
             return View(await mgenitrackContext.ToListAsync());
         }
 

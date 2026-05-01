@@ -111,6 +111,27 @@
             </select>
         </div>
 
+        <!-- Photo capture with camera -->
+        <div class="form-group">
+            <label>Visitor Photo <span style="color:var(--gray-400);font-weight:400;">(optional)</span></label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <div>
+                    <input type="file" id="photoFileInput" name="visitorPhoto" accept="image/*" class="form-control"
+                           style="padding:0.5rem;" onchange="previewPhoto(this)" />
+                    <small style="color: var(--gray-500);">Upload from device</small>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-secondary" onclick="captureFromCamera()" style="width: 100%;">
+                        📷 Capture Photo
+                    </button>
+                    <small style="color: var(--gray-500);">Use device camera</small>
+                </div>
+            </div>
+            <img id="photoPreview" src="" style="display:none;width:80px;height:80px;
+                 border-radius:50%;object-fit:cover;margin-top:0.5rem;
+                 border:2px solid var(--blue-200);" />
+        </div>
+
         <!-- Confirm button -->
         <div style="display:flex; gap:0.75rem; margin-top:1rem;
                     padding-top:1rem; border-top:1px solid var(--gray-100);">
@@ -126,5 +147,109 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+    <script>
+        let cameraStream = null;
+
+        function previewPhoto(input) {
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var img = document.getElementById('photoPreview');
+                    img.src = e.target.result;
+                    img.style.display = 'block';
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function captureFromCamera() {
+            let modal = document.getElementById('cameraModal');
+            if (!modal) {
+                createCameraModal();
+                modal = document.getElementById('cameraModal');
+            }
+            modal.style.display = 'block';
+            startCamera();
+        }
+
+        function createCameraModal() {
+            const modalHTML = `
+                <div id="cameraModal" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4);">
+                    <div class="modal-content" style="background-color: #fefefe; margin: 10% auto; padding: 20px; border: 1px solid #888; width: 90%; max-width: 500px; border-radius: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h3 style="margin: 0;">Capture Visitor Photo</h3>
+                            <span class="close" onclick="closeCameraModal()" style="font-size: 28px; font-weight: bold; cursor: pointer; color: #aaa;">×</span>
+                        </div>
+                        <video id="cameraVideo" style="width: 100%; height: auto; border-radius: 4px; margin-bottom: 1rem; background: #000;"></video>
+                        <canvas id="photoCanvas" style="display: none;"></canvas>
+                        <div style="display: flex; gap: 0.5rem; justify-content: space-between;">
+                            <button type="button" class="btn btn-primary" onclick="capturePhoto()" style="flex: 1;">📸 Capture</button>
+                            <button type="button" class="btn btn-secondary" onclick="closeCameraModal()" style="flex: 1;">Close</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+        }
+
+        function startCamera() {
+            const video = document.getElementById('cameraVideo');
+            navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: 'user' },
+                audio: false
+            }).then(stream => {
+                cameraStream = stream;
+                video.srcObject = stream;
+                video.play();
+            }).catch(err => {
+                alert('Unable to access camera: ' + err.message);
+                closeCameraModal();
+            });
+        }
+
+        function capturePhoto() {
+            const video = document.getElementById('cameraVideo');
+            const canvas = document.getElementById('photoCanvas');
+            const ctx = canvas.getContext('2d');
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+
+            canvas.toBlob(blob => {
+                const file = new File([blob], 'captured_photo.jpg', { type: 'image/jpeg' });
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                document.getElementById('photoFileInput').files = dataTransfer.files;
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    var img = document.getElementById('photoPreview');
+                    img.src = e.target.result;
+                    img.style.display = 'block';
+                };
+                reader.readAsDataURL(blob);
+
+                closeCameraModal();
+            }, 'image/jpeg', 0.95);
+        }
+
+        function closeCameraModal() {
+            const modal = document.getElementById('cameraModal');
+            if (modal) modal.style.display = 'none';
+
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('cameraModal');
+            if (modal && event.target === modal) {
+                closeCameraModal();
+            }
+        }
+    </script>
 }
 

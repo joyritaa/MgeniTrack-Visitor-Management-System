@@ -11,11 +11,11 @@ namespace MgeniTrack.Controllers
     {
         private readonly MgenitrackContext _context;
         private readonly ActivityLogService _activityLog;
-        private readonly DashboardService _dashboardService;
+        private readonly DashboardNotifier _dashboardService;
 
         public AdminDashboardController(MgenitrackContext context,
             ActivityLogService activityLog,
-            DashboardService dashboardService)
+            DashboardNotifier dashboardService)
         {
             _context = context;
             _activityLog = activityLog;
@@ -25,7 +25,7 @@ namespace MgeniTrack.Controllers
         [HttpGet]
         public async Task<IActionResult> GetDashboardStats()
         {
-            var stats = await _dashboardService.GetStatsAsync();
+            var stats = await _dashboardService.GetStatsAsync(_context);
             return Json(stats);
         }
 

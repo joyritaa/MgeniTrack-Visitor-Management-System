@@ -1,4 +1,5 @@
 ﻿using MgeniTrack.Models;
+using MgeniTrack.Services;
 using MgeniTrack.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -13,20 +14,19 @@ namespace MgeniTrack.Controllers
     public class UsersController : Controller
     {
         private readonly MgenitrackContext _context;
+        private readonly DashboardNotifier _notifier;
 
-        public UsersController(MgenitrackContext context)
+        public UsersController(MgenitrackContext context, DashboardNotifier notifier)
         {
             _context = context;
+            _notifier = notifier;
         }
 
         // GET: Users
         public async Task<IActionResult> Index()
         {
-            var users = await _context.Users
-                .Include(u => u.UserRoles)
-                .ThenInclude(ur => ur.Role)
-                .ToListAsync();
-            return View(users);
+            var users = _context.Users.Include(u => u.CreatedByNavigation);
+            return View(await users.ToListAsync());
         }
 
         // GET: Users/Details/5
@@ -35,8 +35,7 @@ namespace MgeniTrack.Controllers
             if (id == null) return NotFound();
 
             var user = await _context.Users
-                .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
-                .Include(u => u.Resident)
+                .Include(u => u.CreatedByNavigation)
                 .FirstOrDefaultAsync(m => m.UserId == id);
 
             if (user == null) return NotFound();
@@ -52,6 +51,17 @@ namespace MgeniTrack.Controllers
                     Value = r.RoleId.ToString(),
                     Text = r.RoleName
                 }).ToListAsync();
+
+            // Vacant units for resident assignment
+            ViewBag.VacantUnits = await _context.Units
+                .Where(u => u.IsOccupied == false)
+                .OrderBy(u => u.UnitNumber)
+                .Select(u => new SelectListItem
+                {
+                    Value = u.UnitId.ToString(),
+                    Text = u.UnitNumber
+                }).ToListAsync();
+
             return View();
         }
 
@@ -60,33 +70,16 @@ namespace MgeniTrack.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(UserCreateViewModel model)
         {
-            // Validate HouseNumber if role is Resident
-            var role = await _context.Roles.FindAsync(model.SelectedRoleId);
-            if (role != null && role.RoleName == "Resident" && string.IsNullOrWhiteSpace(model.HouseNumber))
-            {
-                ModelState.AddModelError("HouseNumber", "House number is required for Residents.");
-            }
-
-            if (role != null && role.RoleName == "Guard" && string.IsNullOrWhiteSpace(model.Shift))
-            {
-                ModelState.AddModelError("Shift", "Shift is required for Guards.");
-            }
-
             if (!ModelState.IsValid)
             {
-                ViewBag.Roles = await _context.Roles
-                    .Select(r => new SelectListItem { Value = r.RoleId.ToString(), Text = r.RoleName })
-                    .ToListAsync();
+                await RepopulateDropdowns();
                 return View(model);
             }
 
-            //  Get the currently logged-in user as the creator
-            var creatorEmail = User.FindFirstValue(ClaimTypes.Name);
-            var creatorUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == creatorEmail);
-            if (creatorUser == null)
-                return Unauthorized();
-
             var hasher = new PasswordHasher<User>();
+            var creatorUser = await _context.Users.FirstOrDefaultAsync();
+            if (creatorUser == null)
+                throw new InvalidOperationException("No creator user found.");
 
             var user = new User
             {
@@ -117,121 +110,110 @@ namespace MgeniTrack.Controllers
             };
             _context.UserRoles.Add(userRole);
 
-            // If Resident- insert into Residents table
-            if (role != null && role.RoleName == "Resident")
+            // create Resident record + mark unit occupied
+            var role = await _context.Roles.FindAsync(model.SelectedRoleId);
+
+            Resident? resident = null;
+            string houseNumber = model.HouseNumber ?? "";
+
+            if (role?.RoleName == "Resident")
             {
-                var resident = new Resident
+                // If a unit was selected from the dropdown, use that unit's number
+                if (model.SelectedUnitId.HasValue)
+                {
+                    var unit = await _context.Units.FindAsync(model.SelectedUnitId.Value);
+                    if (unit != null)
+                    {
+                        houseNumber = unit.UnitNumber;
+                        unit.IsOccupied = true; // Mark occupied
+                    }
+                }
+
+                resident = new Resident
                 {
                     UserId = user.UserId,
-                    HouseNumber = model.HouseNumber!
+                    HouseNumber = houseNumber,
+                    UnitId = model.SelectedUnitId
                 };
                 _context.Residents.Add(resident);
             }
 
             await _context.SaveChangesAsync();
             TempData["Success"] = $"User {user.Firstname} created successfully.";
+
+            // SignalR – notify admins
+            await _notifier.NotifyUserCreated(new
+            {
+                userId = user.UserId,
+                name = $"{user.Firstname} {user.Secondname}",
+                role = role?.RoleName,
+                houseNumber = houseNumber
+            });
+
+            if (model.SelectedUnitId.HasValue)
+            {
+                await _notifier.NotifyUnitStatusChanged(new
+                {
+                    unitId = model.SelectedUnitId,
+                    unitNumber = houseNumber,
+                    isOccupied = true
+                });
+            }
+
             return RedirectToAction(nameof(Index));
         }
 
         // GET: Users/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
-            if (id == null) return NotFound();
-
-            var user = await _context.Users
-                .Include(u => u.UserRoles)
-                .Include(u => u.Resident)
-                .FirstOrDefaultAsync(u => u.UserId == id);
-
+            var user = await _context.Users.FindAsync(id);
             if (user == null) return NotFound();
 
-            var currentRole = user.UserRoles.FirstOrDefault(ur => ur.UserStatus == "Active");
-
-            var vm = new UserEditViewModel
-            {
-                UserId = user.UserId,
-                Firstname = user.Firstname,
-                Secondname = user.Secondname ?? "",
-                Gender = user.Gender ?? "",
-                IdNumber = user.IdNumber ?? "",
-                Email = user.Email,
-                PhoneNumber = user.PhoneNumber ?? "",
-                SelectedRoleId = currentRole?.RoleId ?? 0,
-                Shift = currentRole?.Shift,
-                HouseNumber = user.Resident?.HouseNumber
-            };
-
             ViewBag.Roles = await _context.Roles
-                .Select(r => new SelectListItem { Value = r.RoleId.ToString(), Text = r.RoleName })
-                .ToListAsync();
+                 .Select(r => new SelectListItem
+                 {
+                     Value = r.RoleId.ToString(),
+                     Text = r.RoleName
+                 }).ToListAsync();
 
-            return View(vm);
+            return View(user);
         }
 
         // POST: Users/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, UserEditViewModel model)
+        public async Task<IActionResult> Edit(int id,
+            [Bind("UserId,Firstname,Secondname,Gender,Passwordhash,IdNumber,Email,PhoneNumber,UserStatus,CreatedAt,LastLogin,CreatedBy")]
+            User user)
         {
-            if (id != model.UserId) return NotFound();
+            if (id != user.UserId) return NotFound();
 
             if (!ModelState.IsValid)
             {
-                ViewBag.Roles = await _context.Roles
-                    .Select(r => new SelectListItem { Value = r.RoleId.ToString(), Text = r.RoleName })
-                    .ToListAsync();
-                return View(model);
+                try
+                {
+                    _context.Update(user);
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (!_context.Users.Any(e => e.UserId == user.UserId)) return NotFound();
+                    throw;
+                }
+                return RedirectToAction(nameof(Index));
             }
 
-            var user = await _context.Users
-                .Include(u => u.UserRoles)
-                .Include(u => u.Resident)
-                .FirstOrDefaultAsync(u => u.UserId == id);
-
-            if (user == null) return NotFound();
-
-            user.Firstname = model.Firstname;
-            user.Secondname = model.Secondname;
-            user.Gender = model.Gender;
-            user.IdNumber = model.IdNumber;
-            user.Email = model.Email;
-            user.PhoneNumber = model.PhoneNumber;
-
-            // Only update password if a new one was provided
-            if (!string.IsNullOrWhiteSpace(model.NewPassword))
-            {
-                var hasher = new PasswordHasher<User>();
-                user.Passwordhash = hasher.HashPassword(user, model.NewPassword);
-            }
-
-            // Update role
-            var existingRole = user.UserRoles.FirstOrDefault(ur => ur.UserStatus == "Active");
-            if (existingRole != null)
-            {
-                existingRole.RoleId = model.SelectedRoleId;
-                existingRole.Shift = model.Shift;
-            }
-
-            // Update resident house number if applicable
-            if (user.Resident != null && !string.IsNullOrWhiteSpace(model.HouseNumber))
-            {
-                user.Resident.HouseNumber = model.HouseNumber;
-            }
-
-            await _context.SaveChangesAsync();
-            TempData["Success"] = "User updated successfully.";
-            return RedirectToAction(nameof(Index));
+            ViewData["CreatedBy"] = new SelectList(_context.Users, "UserId", "UserId", user.CreatedBy);
+            return View(user);
         }
 
         // GET: Users/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null) return NotFound();
-
             var user = await _context.Users
-                .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
+                .Include(u => u.CreatedByNavigation)
                 .FirstOrDefaultAsync(m => m.UserId == id);
-
             if (user == null) return NotFound();
             return View(user);
         }
@@ -242,16 +224,24 @@ namespace MgeniTrack.Controllers
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var user = await _context.Users.FindAsync(id);
-            if (user != null)
-            {
-                // set status to Inactive instead of deleting(soft delete)
-                user.UserStatus = "Inactive";
-                await _context.SaveChangesAsync();
-            }
-            TempData["Success"] = "User deactivated successfully.";
+            if (user != null) _context.Users.Remove(user);
+            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 
+        // ── helpers 
+        private async Task RepopulateDropdowns()
+        {
+            ViewBag.Roles = await _context.Roles
+                .Select(r => new SelectListItem { Value = r.RoleId.ToString(), Text = r.RoleName })
+                .ToListAsync();
+
+            ViewBag.VacantUnits = await _context.Units
+                .Where(u => u.IsOccupied == false)
+                .OrderBy(u => u.UnitNumber)
+                .Select(u => new SelectListItem { Value = u.UnitId.ToString(), Text = u.UnitNumber })
+                .ToListAsync();
+        }
         private bool UserExists(int id)
         {
             return _context.Users.Any(e => e.UserId == id);

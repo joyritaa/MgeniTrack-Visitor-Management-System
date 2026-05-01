@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using System.Linq;
 
 namespace MgeniTrack.Controllers
 {
@@ -16,15 +17,15 @@ namespace MgeniTrack.Controllers
         private readonly MgenitrackContext _context;
         private readonly ActivityLogService _activityLog;
         private readonly IHubContext<MgeniTrack.Hubs.DashboardHub> _hub;
-        private readonly DashboardService _dashboardService;
+        private readonly DashboardNotifier _notifier;
 
         public GuardDashboardController(MgenitrackContext context, ActivityLogService activityLog, IHubContext<MgeniTrack.Hubs.DashboardHub> hub,
-    DashboardService dashboardService)
+    DashboardNotifier notifier)
         {
             _context = context;
             _activityLog = activityLog;
             _hub = hub;
-            _dashboardService = dashboardService;
+            _notifier = notifier;
         }
 
         //Dashboard 
@@ -134,7 +135,7 @@ namespace MgeniTrack.Controllers
         {
             // Validate unit is occupied
             var unit = await _context.Units
-                .Include(u => u.Resident)
+                .Include(u => u.Residents)
                 .FirstOrDefaultAsync(u => u.UnitNumber == model.HouseNumber);
 
             if (unit == null)
@@ -223,17 +224,18 @@ namespace MgeniTrack.Controllers
             await _context.SaveChangesAsync();
 
             //dynamic change after saving to db
-            var stats = await _dashboardService.GetStatsAsync();
+            var stats = await _notifier.GetStatsAsync(_context);
 
             await _hub.Clients.All.SendAsync("ReceiveDashboardUpdate", stats);
 
 
             // create notification — visit.VisitId is valid
-            if (unit.Resident != null)
+            var residentForNotification = unit.Residents?.FirstOrDefault();
+            if (residentForNotification != null)
             {
                 _context.Notifications.Add(new Notification
                 {
-                    ResidentId = unit.Resident.ResidentId,
+                    ResidentId = residentForNotification.ResidentId,
                     VisitId = visit.VisitId,   // valid now
                     Title = "Visitor Arrived",
                     Message = $"{model.VisitorName} has arrived at your unit {model.HouseNumber}.",
@@ -242,7 +244,7 @@ namespace MgeniTrack.Controllers
                     CreatedAt = DateTime.Now
                 });
                 await _context.SaveChangesAsync();
-                
+
             }
 
             // Log
@@ -295,14 +297,15 @@ namespace MgeniTrack.Controllers
 
             // Notify resident of checkout
             var unit = await _context.Units
-                .Include(u => u.Resident)
+                .Include(u => u.Residents)
                 .FirstOrDefaultAsync(u => u.UnitNumber == visit.HouseNumber);
 
-            if (unit?.Resident != null)
+            var resident = unit?.Residents?.FirstOrDefault();
+            if (resident != null)
             {
                 _context.Notifications.Add(new Notification
                 {
-                    ResidentId = unit.Resident.ResidentId,
+                    ResidentId = resident.ResidentId,
                     VisitId = visit.VisitId,
                     Title = "Visitor Checked Out",
                     Message = $"{visit.Visitor?.FullName} has left your unit {visit.HouseNumber}. Duration: {visit.VisitDuration} min.",

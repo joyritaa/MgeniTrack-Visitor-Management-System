@@ -14,5 +14,5 @@ public partial class Unit
     public DateTime? CreatedAt { get; set; }
 
     // Navigation
-    public virtual Resident? Resident { get; set; }
+    public virtual ICollection<Resident> Residents { get; set; } = new List<Resident>();
 }

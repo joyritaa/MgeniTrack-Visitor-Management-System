@@ -45,9 +45,17 @@ namespace MgeniTrack.Controllers
         }
 
         // GET: Residents/Create
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
-            ViewData["UserId"] = new SelectList(_context.Users, "UserId", "UserId");
+            var users = new SelectList(_context.Users, "UserId", "Email");
+            var unoccupiedUnits = await _context.Units
+                .Where(u => !u.IsOccupied)
+                .OrderBy(u => u.Block)
+                .ThenBy(u => u.UnitNumber)
+                .ToListAsync();
+
+            ViewData["UserId"] = users;
+            ViewData["Units"] = unoccupiedUnits;
             return View();
         }
 
@@ -56,15 +64,35 @@ namespace MgeniTrack.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("ResidentId,UserId,HouseNumber")] Resident resident)
+        public async Task<IActionResult> Create([Bind("ResidentId,UserId,HouseNumber,UnitId")] Resident resident)
         {
             if (ModelState.IsValid)
             {
+                // If UnitId is provided, mark the unit as occupied
+                if (resident.UnitId.HasValue)
+                {
+                    var unit = await _context.Units.FindAsync(resident.UnitId.Value);
+                    if (unit != null)
+                    {
+                        unit.IsOccupied = true;
+                        _context.Update(unit);
+                    }
+                }
+
                 _context.Add(resident);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["UserId"] = new SelectList(_context.Users, "UserId", "UserId", resident.UserId);
+
+            var users = new SelectList(_context.Users, "UserId", "Email", resident.UserId);
+            var unoccupiedUnits = await _context.Units
+                .Where(u => !u.IsOccupied)
+                .OrderBy(u => u.Block)
+                .ThenBy(u => u.UnitNumber)
+                .ToListAsync();
+
+            ViewData["UserId"] = users;
+            ViewData["Units"] = unoccupiedUnits;
             return View(resident);
         }
 

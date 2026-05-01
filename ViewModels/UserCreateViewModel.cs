@@ -15,5 +15,7 @@
 
         public string? Shift { get; set; }  // For Guard
         public string? HouseNumber { get; set; } // For Resident
+
+        public int? SelectedUnitId { get; set; }  // vacant units dropdown
     }
 }

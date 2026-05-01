@@ -104,7 +104,7 @@ public partial class MgenitrackContext : DbContext
             e.Property(x => x.UserId).HasColumnType("int(11)").HasColumnName("user_id");
             e.Property(x => x.UnitId).HasColumnType("int(11)").HasColumnName("unit_id");
             e.HasOne(x => x.User).WithOne(p => p.Resident).HasForeignKey<Resident>(x => x.UserId).HasConstraintName("residents_ibfk_1");
-            e.HasOne(x => x.Unit).WithOne(p => p.Resident).HasForeignKey<Resident>(x => x.UnitId).IsRequired(false).HasConstraintName("fk_residents_unit");
+            e.HasOne(  x => x.Unit).WithMany(p => p.Residents).HasForeignKey(x => x.UnitId).IsRequired(false).HasConstraintName("fk_residents_unit");
         });
 
         modelBuilder.Entity<Role>(e => {

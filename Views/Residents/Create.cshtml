@@ -1,37 +1,83 @@
 ﻿@model MgeniTrack.Models.Resident
 
 @{
-    ViewData["Title"] = "Create";
+    ViewData["Title"] = "Create Resident";
+    var units = ViewData["Units"] as List<MgeniTrack.Models.Unit> ?? new();
 }
 
-<h1>Create</h1>
+<h1>Create New Resident</h1>
 
-<h4>Resident</h4>
+<h4>Assign a user to a residential unit</h4>
 <hr />
 <div class="row">
-    <div class="col-md-4">
+    <div class="col-md-6">
         <form asp-action="Create">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
             <div class="form-group">
-                <label asp-for="UserId" class="control-label"></label>
-                <select asp-for="UserId" class ="form-control" asp-items="ViewBag.UserId"></select>
+                <label asp-for="UserId" class="control-label">Select User</label>
+                <select asp-for="UserId" class="form-control" asp-items="ViewBag.UserId">
+                    <option value="">-- Choose a user --</option>
+                </select>
+                <span asp-validation-for="UserId" class="text-danger"></span>
             </div>
+
             <div class="form-group">
-                <label asp-for="HouseNumber" class="control-label"></label>
-                <input asp-for="HouseNumber" class="form-control" />
+                <label asp-for="UnitId" class="control-label">Select Unoccupied Unit</label>
+                <select id="UnitId" name="UnitId" class="form-control" onchange="onUnitChange()">
+                    <option value="">-- Choose a unit --</option>
+                    @foreach (var unit in units)
+                    {
+                        <option value="@unit.UnitId" data-unit="@unit.UnitNumber" data-block="@unit.Block" data-type="@unit.UnitType">
+                            @unit.UnitNumber - Block @unit.Block (@unit.UnitType) - Floor @unit.FloorNumber
+                        </option>
+                    }
+                </select>
+                <span class="text-danger">
+                    @if (!units.Any())
+                    {
+                        <small>No unoccupied units available.</small>
+                    }
+                </span>
+            </div>
+
+            <div class="form-group" id="unitInfo" style="display:none;padding:1rem;background:#f0f8ff;border-radius:0.5rem;margin-top:1rem;">
+                <strong>Selected Unit Details:</strong>
+                <div>Unit: <span id="unitNumber"></span></div>
+                <div>Block: <span id="unitBlock"></span></div>
+                <div>Type: <span id="unitType"></span></div>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="HouseNumber" class="control-label">House Number</label>
+                <input asp-for="HouseNumber" class="form-control" placeholder="Enter house/unit number" />
                 <span asp-validation-for="HouseNumber" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
+
+            <div class="form-group" style="margin-top:1.5rem;">
+                <button type="submit" class="btn btn-primary">Create Resident</button>
+                <a asp-action="Index" class="btn btn-secondary">Back to List</a>
             </div>
         </form>
     </div>
 </div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
-
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        function onUnitChange() {
+            const select = document.getElementById('UnitId');
+            const option = select.options[select.selectedIndex];
+            const infoDiv = document.getElementById('unitInfo');
+
+            if (option.value) {
+                document.getElementById('unitNumber').textContent = option.dataset.unit;
+                document.getElementById('unitBlock').textContent = option.dataset.block;
+                document.getElementById('unitType').textContent = option.dataset.type;
+                infoDiv.style.display = 'block';
+            } else {
+                infoDiv.style.display = 'none';
+            }
+        }
+    </script>
 }
