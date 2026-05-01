@@ -21,10 +21,10 @@ namespace MgeniTrack.Controllers
             _activityLog = activityLog;
         }
 
+        //Dashboard 
         public async Task<IActionResult> Index()
         {
             var today = DateTime.Today;
-
             var email = User.FindFirstValue(ClaimTypes.Name);
             var guardUser = await _context.Users
                 .Include(u => u.UserRoles)
@@ -51,10 +51,13 @@ namespace MgeniTrack.Controllers
             ViewBag.CheckedOutToday = todayVisits.Count(v => v.VisitStatus == "CheckedOut");
             ViewBag.CurrentlyInside = activeVisits.Count;
 
+            if (TempData["Success"] != null) ViewBag.SuccessMsg = TempData["Success"];
+            if (TempData["Error"] != null) ViewBag.ErrorMsg = TempData["Error"];
+
             return View();
         }
 
-        //  Active Visits for search 
+        // searchable active visits
         public async Task<IActionResult> ActiveVisits(string? search)
         {
             ViewBag.Search = search;
@@ -70,12 +73,13 @@ namespace MgeniTrack.Controllers
                 query = query.Where(v =>
                     (v.Visitor != null && v.Visitor.FullName.ToLower().Contains(s)) ||
                     (v.HouseNumber != null && v.HouseNumber.ToLower().Contains(s)) ||
-                    (v.Visitor != null && v.Visitor.ContactNumber != null && v.Visitor.ContactNumber.Contains(s)));
+                    (v.Visitor != null && v.Visitor.ContactNumber != null
+                        && v.Visitor.ContactNumber.Contains(s)));
             }
             return View(await query.ToListAsync());
         }
 
-        //All Visits viewbag
+        // all visits
         public async Task<IActionResult> AllVisits(string? search, string? status, string? block)
         {
             ViewBag.Search = search;
@@ -94,7 +98,8 @@ namespace MgeniTrack.Controllers
                 query = query.Where(v =>
                     (v.Visitor != null && v.Visitor.FullName.ToLower().Contains(s)) ||
                     (v.HouseNumber != null && v.HouseNumber.ToLower().Contains(s)) ||
-                    (v.Visitor != null && v.Visitor.IdNumber != null && v.Visitor.IdNumber.Contains(s)));
+                    (v.Visitor != null && v.Visitor.IdNumber != null
+                        && v.Visitor.IdNumber.Contains(s)));
             }
             if (!string.IsNullOrWhiteSpace(status))
                 query = query.Where(v => v.VisitStatus == status);
@@ -104,10 +109,9 @@ namespace MgeniTrack.Controllers
             return View(await query.Take(100).ToListAsync());
         }
 
-        // Walk-In GET 
+        // Walk-In GET
         public async Task<IActionResult> WalkIn()
         {
-            // Only show OCCUPIED units have a resident
             var occupiedUnits = await _context.Units
                 .Where(u => u.IsOccupied)
                 .OrderBy(u => u.UnitNumber)
@@ -117,26 +121,21 @@ namespace MgeniTrack.Controllers
             return View(new WalkInViewModel());
         }
 
-
-        // Walk-In POST
+        // walk-in POST
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> WalkIn(WalkInViewModel model, IFormFile? visitorPhoto)
         {
-            // Validate the unit is occupied
+            // Validate unit is occupied
             var unit = await _context.Units
-                .Include(u => u.Resident).ThenInclude(r => r != null ? r.User : null)
+                .Include(u => u.Resident)
                 .FirstOrDefaultAsync(u => u.UnitNumber == model.HouseNumber);
 
             if (unit == null)
-            {
                 ModelState.AddModelError("HouseNumber", "Unit not found.");
-            }
             else if (!unit.IsOccupied)
-            {
                 ModelState.AddModelError("HouseNumber",
-                    $"Unit {model.HouseNumber} is currently vacant. Visitors cannot be checked in to an unoccupied unit.");
-            }
+                    $"Unit {model.HouseNumber} is currently vacant. No visitor can be checked in here.");
 
             if (!ModelState.IsValid)
             {
@@ -146,19 +145,20 @@ namespace MgeniTrack.Controllers
             }
 
             var guardEmail = User.FindFirstValue(ClaimTypes.Name);
-            var guardUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == guardEmail);
+            var guardUser = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email == guardEmail);
             if (guardUser == null) return Unauthorized();
 
-            // Auto-detect BnB purpose if Block C unit
+            // Auto-set BnB purpose for Block C
             var purpose = model.PurposeOfVisit;
-            if (unit?.UnitType == "BnB" && purpose != "BnB Stay")
-                purpose = "BnB Stay";
+            if (unit!.UnitType == "BnB") purpose = "BnB Stay";
 
             // Handle photo upload
             string? photoPath = null;
             if (visitorPhoto != null && visitorPhoto.Length > 0)
             {
-                var uploadDir = Path.Combine("wwwroot", "uploads", "visitors");
+                var uploadDir = Path.Combine(
+                    Directory.GetCurrentDirectory(), "wwwroot", "uploads", "visitors");
                 Directory.CreateDirectory(uploadDir);
                 var fileName = $"{Guid.NewGuid()}{Path.GetExtension(visitorPhoto.FileName)}";
                 var filePath = Path.Combine(uploadDir, fileName);
@@ -167,12 +167,10 @@ namespace MgeniTrack.Controllers
                 photoPath = $"/uploads/visitors/{fileName}";
             }
 
-
-
-            //to find or create a visitor
-            var visitor = await _context.Visitors
-                .FirstOrDefaultAsync(v => v.FullName == model.VisitorName &&
-                                          v.ContactNumber == model.ContactNumber);
+            // Find or create visitor
+            var visitor = await _context.Visitors.FirstOrDefaultAsync(v =>
+                v.FullName == model.VisitorName &&
+                v.ContactNumber == model.ContactNumber);
 
             if (visitor == null)
             {
@@ -188,17 +186,18 @@ namespace MgeniTrack.Controllers
                     InvitedViaInvitationId = null
                 };
                 _context.Visitors.Add(visitor);
-                
             }
             else
             {
                 visitor.TotalVisits = (visitor.TotalVisits ?? 0) + 1;
                 visitor.UpdatedAt = DateTime.Now;
-                if (photoPath != null) visitor.PhotoUrl = photoPath; // update photo if new one uploaded
-               
+                if (photoPath != null) visitor.PhotoUrl = photoPath;
             }
+
+            //Save visitor first to get VisitorId
             await _context.SaveChangesAsync();
 
+            //Create and save the visit
             var visit = new Visit
             {
                 VisitorId = visitor.VisitorId,
@@ -210,43 +209,39 @@ namespace MgeniTrack.Controllers
                 TimeIn = DateTime.Now,
                 VisitStatus = "CheckedIn",
                 CheckInMethod = "Manual",
-                CreatedAt = DateTime.Now,
-                Visitor = visitor,
-                CheckedInByNavigation = guardUser
+                CreatedAt = DateTime.Now
             };
-
             _context.Visits.Add(visit);
 
+            // SaveChanges to get the VisitId before creating notification
+            await _context.SaveChangesAsync();
 
-
-            //notify the resident
-            if (unit?.Resident != null)
+            // create notification — visit.VisitId is valid
+            if (unit.Resident != null)
             {
                 _context.Notifications.Add(new Notification
                 {
                     ResidentId = unit.Resident.ResidentId,
-                    VisitId = visit.VisitId,
+                    VisitId = visit.VisitId,   // valid now
                     Title = "Visitor Arrived",
                     Message = $"{model.VisitorName} has arrived at your unit {model.HouseNumber}.",
                     NotificationType = "VisitorArrived",
                     IsRead = false,
                     CreatedAt = DateTime.Now
                 });
+                await _context.SaveChangesAsync();
             }
 
-            await _context.SaveChangesAsync();
-
-            //log check in activity
-
+            // Log
             await _activityLog.LogAsync("CheckIn",
                 $"Walk-in: {model.VisitorName} → {model.HouseNumber} ({purpose}). Guard: {guardUser.Firstname}",
                 "Visit", visit.VisitId);
 
-            TempData["Success"] = $"{model.VisitorName} checked in to {model.HouseNumber}.";
+            TempData["Success"] = $"{model.VisitorName} checked in to {model.HouseNumber} successfully.";
             return RedirectToAction(nameof(Index));
         }
 
-        //check-Out GET
+        // check-Out GET 
         public async Task<IActionResult> CheckOut(int visitId)
         {
             var visit = await _context.Visits
@@ -254,6 +249,7 @@ namespace MgeniTrack.Controllers
                 .FirstOrDefaultAsync(v => v.VisitId == visitId);
 
             if (visit == null) return NotFound();
+
             if (visit.VisitStatus == "CheckedOut")
             {
                 TempData["Error"] = "This visitor has already been checked out.";
@@ -262,7 +258,7 @@ namespace MgeniTrack.Controllers
             return View(visit);
         }
 
-        //check-Out POST 
+        // Check-Out POST
         [HttpPost, ActionName("CheckOut")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CheckOutConfirmed(int visitId)
@@ -273,7 +269,8 @@ namespace MgeniTrack.Controllers
             if (visit == null) return NotFound();
 
             var guardEmail = User.FindFirstValue(ClaimTypes.Name);
-            var guardUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == guardEmail);
+            var guardUser = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email == guardEmail);
 
             visit.TimeOut = DateTime.Now;
             visit.VisitStatus = "CheckedOut";
@@ -283,8 +280,28 @@ namespace MgeniTrack.Controllers
 
             await _context.SaveChangesAsync();
 
+            // Notify resident of checkout
+            var unit = await _context.Units
+                .Include(u => u.Resident)
+                .FirstOrDefaultAsync(u => u.UnitNumber == visit.HouseNumber);
+
+            if (unit?.Resident != null)
+            {
+                _context.Notifications.Add(new Notification
+                {
+                    ResidentId = unit.Resident.ResidentId,
+                    VisitId = visit.VisitId,
+                    Title = "Visitor Checked Out",
+                    Message = $"{visit.Visitor?.FullName} has left your unit {visit.HouseNumber}. Duration: {visit.VisitDuration} min.",
+                    NotificationType = "CheckedOut",
+                    IsRead = false,
+                    CreatedAt = DateTime.Now
+                });
+                await _context.SaveChangesAsync();
+            }
+
             await _activityLog.LogAsync("CheckOut",
-                $"{visit.Visitor?.FullName} checked out from {visit.HouseNumber}. Duration: {visit.VisitDuration} min",
+                $"{visit.Visitor?.FullName} checked out of {visit.HouseNumber}. Duration: {visit.VisitDuration} min",
                 "Visit", visit.VisitId);
 
             TempData["Success"] = $"{visit.Visitor?.FullName ?? "Visitor"} checked out. Duration: {visit.VisitDuration} min.";

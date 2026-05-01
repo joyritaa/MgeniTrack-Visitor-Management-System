@@ -29,10 +29,10 @@
         <div style="font-size:0.7rem;opacity:0.75;text-transform:uppercase;letter-spacing:0.1em;">Your Unit</div>
         <div style="font-size:2rem;font-weight:800;line-height:1.1;">@ViewBag.HouseNumber</div>
         <div style="font-size:0.78rem;opacity:0.8;margin-top:0.2rem;">
-            @(isBnb ? "&#127970; BnB Unit" : "&#127968; Residential") &nbsp;•&nbsp; @ViewBag.FloorInfo
+            @(isBnb ? "BnB Unit" : "Residential") &nbsp;•&nbsp; @ViewBag.FloorInfo
         </div>
     </div>
-    <div style="font-size:3rem;opacity:0.35;">@(isBnb ? "&#127970;" : "&#127968;")</div>
+    <div style="font-size:3rem;opacity:0.35;">@(isBnb ? "BNB" : "TENANT")</div>
 </div>
 
 <div class="stats-grid">

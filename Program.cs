@@ -18,12 +18,18 @@ builder.Services.AddAuthentication("MyCookieAuth")
     .AddCookie("MyCookieAuth", options =>
     {
         options.LoginPath = "/Account/Login";
+        options.AccessDeniedPath = "/Account/Login";
+
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(5); //session expires after 5 mins
+        options.SlidingExpiration = true; // resets timer on activity
+
+        options.Cookie.HttpOnly = true;
     });
 
 builder.Services.AddAuthorization();
 
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<ActivityLogService>();
+builder.Services.AddScoped<ActivityLogService>(); 
 
 var app = builder.Build();
 
@@ -45,6 +51,7 @@ app.UseStaticFiles();
 app.UseRouting();
 
 app.UseAuthorization();
+
 
 app.MapControllerRoute(
     name: "default",

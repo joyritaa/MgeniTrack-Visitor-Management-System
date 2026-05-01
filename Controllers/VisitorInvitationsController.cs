@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore;
 using MgeniTrack.Models;
 using MgeniTrack.ViewModels;
 using MgeniTrack.Services;
-using MgeniTrack.Helpers;
 
 namespace MgeniTrack.Controllers
 {
@@ -20,7 +19,7 @@ namespace MgeniTrack.Controllers
             _activityLog = activityLog;
         }
 
-        // RESIDENT: List their own invitations
+        // List invitations for residents, managers, and admins
         [Authorize(Roles = "Resident,PropertyManager,SuperAdmin")]
         public async Task<IActionResult> Index()
         {
@@ -28,46 +27,36 @@ namespace MgeniTrack.Controllers
                 .Include(i => i.Resident).ThenInclude(r => r.User)
                 .OrderByDescending(i => i.CreatedAt);
 
-            // Residents only see their own invitations
             if (User.IsInRole("Resident"))
             {
                 var email = User.FindFirstValue(ClaimTypes.Name);
                 var resident = await _context.Residents
                     .Include(r => r.User)
                     .FirstOrDefaultAsync(r => r.User.Email == email);
-
                 if (resident == null)
                 {
                     TempData["Error"] = "No resident profile found for your account.";
                     return View(new List<VisitorInvitation>());
                 }
-
                 query = query.Where(i => i.ResidentId == resident.ResidentId);
             }
-
             return View(await query.ToListAsync());
         }
 
-        // RESIDENT: Create invitation — GET
+        // Resident: Create invitation GET 
         [Authorize(Roles = "Resident")]
-        public IActionResult Create()
+        public IActionResult Create() => View(new InvitationCreateViewModel
         {
-            return View(new InvitationCreateViewModel
-            {
-                ExpectedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(1))
-            });
-        }
+            ExpectedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(1))
+        });
 
-        // RESIDENT: Create invitation — POST
-        [HttpPost]
-        [ValidateAntiForgeryToken]
+        //Resident: Create invitation POST
+        [HttpPost, ValidateAntiForgeryToken]
         [Authorize(Roles = "Resident")]
         public async Task<IActionResult> Create(InvitationCreateViewModel model)
         {
-            if (!ModelState.IsValid)
-                return View(model);
+            if (!ModelState.IsValid) return View(model);
 
-            // Get the logged-in resident
             var email = User.FindFirstValue(ClaimTypes.Name);
             var resident = await _context.Residents
                 .Include(r => r.User)
@@ -79,12 +68,11 @@ namespace MgeniTrack.Controllers
                 return View(model);
             }
 
-            // Generate a unique invitation token
-            var token = Guid.NewGuid().ToString("N").ToUpper().Substring(0, 10);
+            var token = Guid.NewGuid().ToString("N").ToUpper()[..10];
 
             var invitation = new VisitorInvitation
             {
-                InvitationId = 0, // EF will assign
+                InvitationId = 0,
                 ResidentId = resident.ResidentId,
                 VisitorName = model.VisitorName,
                 VisitorPhone = model.VisitorPhone,
@@ -92,7 +80,7 @@ namespace MgeniTrack.Controllers
                 PurposeOfVisit = model.PurposeOfVisit,
                 ExpectedDate = model.ExpectedDate,
                 InvitationToken = token,
-                QrCodePath = $"/qrcodes/{token}.png", // placeholder path
+                QrCodePath = $"/qrcodes/{token}.png",
                 VisitStatus = "Pending",
                 CreatedAt = DateTime.Now
             };
@@ -108,30 +96,25 @@ namespace MgeniTrack.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // RESIDENT: Invitation details
+        //  Resident: Invitation details 
         [Authorize(Roles = "Resident,PropertyManager,SuperAdmin")]
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null) return NotFound();
-
             var invitation = await _context.VisitorInvitations
                 .Include(i => i.Resident).ThenInclude(r => r.User)
                 .FirstOrDefaultAsync(i => i.InvitationId == id);
-
             if (invitation == null) return NotFound();
             return View(invitation);
         }
 
-      // RESIDENT: Cancel invitation
+        // Resident: Cancel invitation 
         [Authorize(Roles = "Resident")]
-        [HttpPost]
-        [ValidateAntiForgeryToken]
+        [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Cancel(int id)
         {
             var invitation = await _context.VisitorInvitations.FindAsync(id);
             if (invitation == null) return NotFound();
-
-            // Only allow cancel if still pending
             if (invitation.VisitStatus == "Pending")
             {
                 invitation.VisitStatus = "Cancelled";
@@ -142,30 +125,23 @@ namespace MgeniTrack.Controllers
             {
                 TempData["Error"] = "Only pending invitations can be cancelled.";
             }
-
             return RedirectToAction(nameof(Index));
         }
 
-        // GUARD: View all pending invitations to verify
+        //  Guard: Pending list with auto-expiry
         [Authorize(Roles = "Guard")]
         public async Task<IActionResult> PendingList(string? search)
         {
             ViewBag.Search = search;
-
             var today = DateOnly.FromDateTime(DateTime.Today);
 
             // Auto-expire past invitations
             var expired = await _context.VisitorInvitations
                 .Where(i => i.VisitStatus == "Pending" && i.ExpectedDate < today)
                 .ToListAsync();
+            foreach (var e in expired) e.VisitStatus = "Expired";
+            if (expired.Any()) await _context.SaveChangesAsync();
 
-            foreach (var e in expired)
-                e.VisitStatus = "Expired";
-
-            if (expired.Any())
-                await _context.SaveChangesAsync();
-
-            // Load pending for today or future
             IQueryable<VisitorInvitation> query = _context.VisitorInvitations
                 .Include(i => i.Resident).ThenInclude(r => r.User)
                 .Where(i => i.VisitStatus == "Pending")
@@ -173,24 +149,22 @@ namespace MgeniTrack.Controllers
 
             if (!string.IsNullOrWhiteSpace(search))
             {
-                search = search.Trim().ToLower();
+                var s = search.Trim().ToLower();
                 query = query.Where(i =>
-                    i.VisitorName.ToLower().Contains(search) ||
-                    (i.InvitationToken != null && i.InvitationToken.ToLower().Contains(search)) ||
-                    (i.VisitorPhone != null && i.VisitorPhone.Contains(search)));
+                    i.VisitorName.ToLower().Contains(s) ||
+                    (i.InvitationToken != null && i.InvitationToken.ToLower().Contains(s)) ||
+                    (i.VisitorPhone != null && i.VisitorPhone.Contains(s)));
             }
-
             return View(await query.ToListAsync());
         }
 
-        // GUARD: Check-in form — GET (pre-filled from invitation)
+        //Guard: Check-In form GET 
         [Authorize(Roles = "Guard")]
         public async Task<IActionResult> CheckIn(int id)
         {
             var invitation = await _context.VisitorInvitations
                 .Include(i => i.Resident).ThenInclude(r => r.User)
                 .FirstOrDefaultAsync(i => i.InvitationId == id);
-
             if (invitation == null) return NotFound();
 
             if (invitation.VisitStatus != "Pending")
@@ -199,7 +173,7 @@ namespace MgeniTrack.Controllers
                 return RedirectToAction(nameof(PendingList));
             }
 
-            var vm = new GuardCheckInViewModel
+            return View(new GuardCheckInViewModel
             {
                 InvitationId = invitation.InvitationId,
                 VisitorName = invitation.VisitorName,
@@ -208,37 +182,42 @@ namespace MgeniTrack.Controllers
                 HouseNumber = invitation.Resident?.HouseNumber ?? "",
                 ResidentName = $"{invitation.Resident?.User?.Firstname} {invitation.Resident?.User?.Secondname}",
                 ExpectedDate = invitation.ExpectedDate
-            };
-
-            return View(vm);
+            });
         }
-        // GUARD: Check-in form — POST (creates a Visit record)
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Guard")]
-        public async Task<IActionResult> CheckIn(GuardCheckInViewModel model)
-        {
-            if (!ModelState.IsValid)
-                return View(model);
 
-            // Get logged-in guard's user record
+        //Guard: Check-In POST 
+        [HttpPost, ValidateAntiForgeryToken]
+        [Authorize(Roles = "Guard")]
+        public async Task<IActionResult> CheckIn(GuardCheckInViewModel model, IFormFile? visitorPhoto)
+        {
+            if (!ModelState.IsValid) return View(model);
+
             var guardEmail = User.FindFirstValue(ClaimTypes.Name);
             var guardUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == guardEmail);
-
             if (guardUser == null) return Unauthorized();
 
-            // Load invitation
             var invitation = await _context.VisitorInvitations
                 .Include(i => i.Resident)
                 .FirstOrDefaultAsync(i => i.InvitationId == model.InvitationId);
-
             if (invitation == null) return NotFound();
 
-            // Create or reuse visitor record (match by name + phone)
-            var visitor = await _context.Visitors
-                .FirstOrDefaultAsync(v =>
-                    v.FullName == model.VisitorName &&
-                    v.ContactNumber == model.VisitorPhone);
+            // Handle photo upload
+            string? photoPath = null;
+            if (visitorPhoto != null && visitorPhoto.Length > 0)
+            {
+                var uploadDir = Path.Combine(
+                    Directory.GetCurrentDirectory(), "wwwroot", "uploads", "visitors");
+                Directory.CreateDirectory(uploadDir);
+                var fileName = $"{Guid.NewGuid()}{Path.GetExtension(visitorPhoto.FileName)}";
+                using var stream = new FileStream(
+                    Path.Combine(uploadDir, fileName), FileMode.Create);
+                await visitorPhoto.CopyToAsync(stream);
+                photoPath = $"/uploads/visitors/{fileName}";
+            }
+
+            //  Find or create visitor, save first
+            var visitor = await _context.Visitors.FirstOrDefaultAsync(v =>
+                v.FullName == model.VisitorName && v.ContactNumber == model.VisitorPhone);
 
             if (visitor == null)
             {
@@ -247,23 +226,23 @@ namespace MgeniTrack.Controllers
                     FullName = model.VisitorName,
                     IdNumber = model.IdNumber,
                     ContactNumber = model.VisitorPhone,
+                    PhotoUrl = photoPath,
                     FirstVisitDate = DateTime.Now,
                     TotalVisits = 1,
                     CreatedAt = DateTime.Now,
-                    InvitedViaInvitationId = invitation.InvitationId,
-                    InvitedViaInvitation = invitation
+                    InvitedViaInvitationId = invitation.InvitationId
                 };
                 _context.Visitors.Add(visitor);
-                await _context.SaveChangesAsync();
             }
             else
             {
-                // Increment visit count
                 visitor.TotalVisits = (visitor.TotalVisits ?? 0) + 1;
                 visitor.UpdatedAt = DateTime.Now;
+                if (photoPath != null) visitor.PhotoUrl = photoPath;
             }
+            await _context.SaveChangesAsync();  // visitor saved, has ID now
 
-            // Create the Visit record
+            //  Create and save visit
             var visit = new Visit
             {
                 VisitorId = visitor.VisitorId,
@@ -276,44 +255,56 @@ namespace MgeniTrack.Controllers
                 VisitStatus = "CheckedIn",
                 CheckInMethod = model.CheckInMethod,
                 InvitationId = invitation.InvitationId,
-                CreatedAt = DateTime.Now,
-                Visitor = visitor,
-                CheckedInByNavigation = guardUser
+                CreatedAt = DateTime.Now
             };
-
             _context.Visits.Add(visit);
-
-            // Update invitation status → Arrived
             invitation.VisitStatus = "Arrived";
+            await _context.SaveChangesAsync();  // visit saved, has ID now
 
-            await _context.SaveChangesAsync();
+            //  Notification- visit.VisitId is now valid
+            if (invitation.Resident != null)
+            {
+                _context.Notifications.Add(new Notification
+                {
+                    ResidentId = invitation.Resident.ResidentId,
+                    VisitId = visit.VisitId,
+                    Title = "Visitor Arrived",
+                    Message = $"{model.VisitorName} has arrived at your unit {model.HouseNumber}.",
+                    NotificationType = "VisitorArrived",
+                    IsRead = false,
+                    CreatedAt = DateTime.Now
+                });
+                await _context.SaveChangesAsync();
+            }
 
             await _activityLog.LogAsync("CheckIn",
-                $"Pre-registered: {model.VisitorName} checked into {model.HouseNumber} via invitation",
+                $"Pre-registered: {model.VisitorName} → {model.HouseNumber} via invitation #{invitation.InvitationId}",
                 "Visit", visit.VisitId);
 
-            TempData["Success"] = $"{model.VisitorName} checked in successfully to {model.HouseNumber}.";
+            TempData["Success"] = $"{model.VisitorName} checked in to {model.HouseNumber}.";
             return RedirectToAction("Index", "GuardDashboard");
         }
 
-        // GUARD: Check-out a visitor
+        //  Guard: Check-Out GET
         [Authorize(Roles = "Guard")]
         public async Task<IActionResult> CheckOut(int visitId)
         {
             var visit = await _context.Visits
                 .Include(v => v.Visitor)
                 .FirstOrDefaultAsync(v => v.VisitId == visitId);
-
             if (visit == null) return NotFound();
             return View(visit);
         }
 
+        //Guard: Check-Out POST 
         [HttpPost, ActionName("CheckOut")]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Guard")]
         public async Task<IActionResult> CheckOutConfirmed(int visitId)
         {
-            var visit = await _context.Visits.FindAsync(visitId);
+            var visit = await _context.Visits
+                .Include(v => v.Visitor)
+                .FirstOrDefaultAsync(v => v.VisitId == visitId);
             if (visit == null) return NotFound();
 
             var guardEmail = User.FindFirstValue(ClaimTypes.Name);
@@ -323,12 +314,10 @@ namespace MgeniTrack.Controllers
             visit.VisitStatus = "CheckedOut";
             visit.CheckedOutBy = guardUser?.UserId;
             visit.VisitDuration = visit.TimeIn.HasValue
-                ? (int)(DateTime.Now - visit.TimeIn.Value).TotalMinutes
-                : 0;
-
+                ? (int)(DateTime.Now - visit.TimeIn.Value).TotalMinutes : 0;
             await _context.SaveChangesAsync();
 
-            TempData["Success"] = "Visitor checked out successfully.";
+            TempData["Success"] = $"{visit.Visitor?.FullName} checked out. Duration: {visit.VisitDuration} min.";
             return RedirectToAction("Index", "GuardDashboard");
         }
     }

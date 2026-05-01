@@ -37,6 +37,7 @@ public class AccountController : Controller
             ModelState.AddModelError("", "Invalid email or password");
             return View(model);
         }
+        
 
         var hasher = new PasswordHasher<User>();
         var result = hasher.VerifyHashedPassword(user, user.Passwordhash, model.Password);
@@ -78,7 +79,13 @@ public class AccountController : Controller
         var claimsIdentity = new ClaimsIdentity(claims, "MyCookieAuth");
         var claimsPrincipal = new ClaimsPrincipal(claimsIdentity);
 
-        await HttpContext.SignInAsync("MyCookieAuth", claimsPrincipal);
+        var authProperties = new AuthenticationProperties
+        {
+            IsPersistent = false, // session cookie (dies when browser closes)
+            ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(5)
+        };
+
+        await HttpContext.SignInAsync("MyCookieAuth", claimsPrincipal, authProperties);
 
         // Update last login
         user.LastLogin = DateTime.Now;
@@ -104,7 +111,12 @@ public class AccountController : Controller
     public async Task<IActionResult> Logout()
     {
         // Log logout before signing out
-        await _logger.LogAsync("Logout", "User signed out", "User");
+        var email = User.Identity?.Name;
+
+        await _logger.LogAsync("Logout",
+            $"{email} signed out",
+            "User");
+
         await HttpContext.SignOutAsync("MyCookieAuth");
         return RedirectToAction("Login");
     }
