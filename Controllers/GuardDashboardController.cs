@@ -1,10 +1,11 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+﻿using MgeniTrack.Helpers;
 using MgeniTrack.Models;
-using MgeniTrack.ViewModels;
 using MgeniTrack.Services;
-using MgeniTrack.Helpers;
+using MgeniTrack.ViewModels;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace MgeniTrack.Controllers
@@ -14,11 +15,16 @@ namespace MgeniTrack.Controllers
     {
         private readonly MgenitrackContext _context;
         private readonly ActivityLogService _activityLog;
+        private readonly IHubContext<MgeniTrack.Hubs.DashboardHub> _hub;
+        private readonly DashboardService _dashboardService;
 
-        public GuardDashboardController(MgenitrackContext context, ActivityLogService activityLog)
+        public GuardDashboardController(MgenitrackContext context, ActivityLogService activityLog, IHubContext<MgeniTrack.Hubs.DashboardHub> hub,
+    DashboardService dashboardService)
         {
             _context = context;
             _activityLog = activityLog;
+            _hub = hub;
+            _dashboardService = dashboardService;
         }
 
         //Dashboard 
@@ -216,6 +222,12 @@ namespace MgeniTrack.Controllers
             // SaveChanges to get the VisitId before creating notification
             await _context.SaveChangesAsync();
 
+            //dynamic change after saving to db
+            var stats = await _dashboardService.GetStatsAsync();
+
+            await _hub.Clients.All.SendAsync("ReceiveDashboardUpdate", stats);
+
+
             // create notification — visit.VisitId is valid
             if (unit.Resident != null)
             {
@@ -230,6 +242,7 @@ namespace MgeniTrack.Controllers
                     CreatedAt = DateTime.Now
                 });
                 await _context.SaveChangesAsync();
+                
             }
 
             // Log

@@ -30,6 +30,8 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ActivityLogService>(); 
+builder.Services.AddSignalR();
+builder.Services.AddScoped<DashboardService>();
 
 var app = builder.Build();
 
@@ -49,6 +51,8 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+
+app.MapHub<MgeniTrack.Hubs.DashboardHub>("/dashboardHub");
 
 app.UseAuthorization();
 

@@ -223,3 +223,29 @@
         }
     </div>
 </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+
+<script>
+    const connection = new signalR.HubConnectionBuilder()
+    .withUrl("/dashboardHub")
+    .build();
+
+    connection.on("ReceiveDashboardUpdate", function (data) {
+
+    document.getElementById("currentlyInside").innerText = data.currentlyInside;
+    document.getElementById("todayVisits").innerText = data.todayVisits;
+    document.getElementById("checkedOut").innerText = data.checkedOut;
+
+    let pct = data.total > 0
+    ? Math.floor((data.occupied / data.total) * 100)
+    : 0;
+
+    document.getElementById("occupancyBar").style.width = pct + "%";
+    document.getElementById("occupancyText").innerText = pct + "%";
+    });
+
+    connection.start()
+    .then(() => console.log("SignalR Connected"))
+    .catch(err => console.error(err));
+</script>
