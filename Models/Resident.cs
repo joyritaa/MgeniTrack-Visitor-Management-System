@@ -14,7 +14,7 @@ public partial class Resident
     //Link to the units table
     public int? UnitId { get; set; }
 
-    public virtual Unit? Unit { get; set; }
+    public Unit Unit { get; set; } = null!;
     public virtual User User { get; set; } = null!;
 
     public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();

@@ -1,0 +1,942 @@
+﻿@model MgeniTrack.ViewModels.VisitAnalyticsViewModel
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Visit Analytics";
+    var opts = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
+    // Chart data — serialised once, used by JS below
+    string J(object o) => JsonSerializer.Serialize(o, opts);
+
+    var purposeLabels = J(Model.PurposeDistribution.Select(s => s.Label));
+    var purposeValues = J(Model.PurposeDistribution.Select(s => s.Value));
+    var purposeColors = J(Model.PurposeDistribution.Select(s => s.Color));
+
+    var blockLabels   = J(Model.BlockDistribution.Select(s => s.Label));
+    var blockValues   = J(Model.BlockDistribution.Select(s => s.Value));
+    var blockColors   = J(Model.BlockDistribution.Select(s => s.Color));
+
+    var methodLabels  = J(Model.CheckInMethodDistribution.Select(s => s.Label));
+    var methodValues  = J(Model.CheckInMethodDistribution.Select(s => s.Value));
+    var methodColors  = J(Model.CheckInMethodDistribution.Select(s => s.Color));
+
+    var dailyLabelsJs = J(Model.DailyLabels);
+    var dailySeriesJs = J(Model.DailySeriesByBlock.Select(s => new {
+        label = s.Label, color = s.Color, data = s.Values }));
+
+    var hourlyJs      = J(Model.HourlyHistogram);
+    var avgDurLabels  = J(Model.AverageDurationByPurpose.Keys.ToList());
+    var avgDurValues  = J(Model.AverageDurationByPurpose.Values.ToList());
+
+    // Build export URL preserving current filters
+    var exportUrl = Url.Action("ExportCsv", "Analytics", new {
+        from    = Model.FilterFrom.ToString("yyyy-MM-dd"),
+        to      = Model.FilterTo.ToString("yyyy-MM-dd"),
+        block   = Model.FilterBlock,
+        purpose = Model.FilterPurpose
+    });
+
+    // Helper: format minutes as "Xh Ym" or "Ym"
+    string Fmt(double m) => m >= 60
+        ? $"{(int)(m/60)}h {(int)(m % 60)}m"
+        : $"{Math.Round(m,1)}m";
+}
+
+
+<!--PAGE HEADER-->
+<div class="page-header">
+    <div class="page-header-left">
+        <h2>📊 Visit Analytics</h2>
+        <p>
+            @Model.FilterFrom.ToString("dd MMM yyyy") – @Model.FilterTo.ToString("dd MMM yyyy")
+            @if (!string.IsNullOrEmpty(Model.FilterBlock))
+            { <span class="badge badge-blue" style="margin-left:.4rem;">Block @Model.FilterBlock</span> }
+            @if (!string.IsNullOrEmpty(Model.FilterPurpose))
+            { <span class="badge badge-gray" style="margin-left:.3rem;">@Model.FilterPurpose</span> }
+        </p>
+    </div>
+    <div style="display:flex;gap:.65rem;flex-wrap:wrap;">
+        <button onclick="window.print()" class="btn btn-secondary">🖨 Print</button>
+        <a href="@exportUrl" class="btn btn-primary">⬇ Export CSV</a>
+    </div>
+</div>
+
+<!--LIVE ALERT TICKER  (shown only when there are active long-stay alerts)-->
+@if (Model.LongVisitAlertCount > 0)
+{
+    <div class="alert-ticker" id="liveBar">
+        <span class="at-badge">⚠ @Model.LongVisitAlertCount ALERT@(Model.LongVisitAlertCount > 1 ? "S" : "")</span>
+        <span style="font-size:.85rem;font-weight:600;color:#b91c1c;">
+            @Model.LongVisitAlertCount visit@(Model.LongVisitAlertCount > 1 ? "s are" : " is")
+            flagged as unusually long.
+        </span>
+        @if (Model.LongVisitAlerts.Any())
+        {
+            var first = Model.LongVisitAlerts.First();
+            <span style="font-size:.8rem;color:#7f1d1d;">
+                Most extreme: <strong>@first.VisitorName</strong>
+                — @Fmt(first.DurationMinutes) in @first.HouseNumber
+                (@first.Multiplier× purpose avg)
+            </span>
+        }
+        <a href="#alerts" style="font-size:.8rem;color:#b91c1c;font-weight:700;margin-left:auto;">
+            View All →
+        </a>
+    </div>
+}
+
+<!-- FILTER FORM-->
+<div class="panel" style="padding:1rem 1.35rem;margin-bottom:1.5rem;">
+    <form asp-action="Index" method="get"
+          style="display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap;">
+
+        <div class="form-group" style="margin:0;">
+            <label style="font-size:.7rem;font-weight:700;text-transform:uppercase;
+                letter-spacing:.06em;color:var(--gray-400);display:block;margin-bottom:.3rem;">From</label>
+            <input type="date" name="from" class="form-control"
+                   value="@Model.FilterFrom.ToString("yyyy-MM-dd")"
+                   max="@DateTime.Today.ToString("yyyy-MM-dd")" style="max-width:155px;" />
+        </div>
+
+        <div class="form-group" style="margin:0;">
+            <label style="font-size:.7rem;font-weight:700;text-transform:uppercase;
+                letter-spacing:.06em;color:var(--gray-400);display:block;margin-bottom:.3rem;">To</label>
+            <input type="date" name="to" class="form-control"
+                   value="@Model.FilterTo.ToString("yyyy-MM-dd")"
+                   max="@DateTime.Today.ToString("yyyy-MM-dd")" style="max-width:155px;" />
+        </div>
+
+        <div class="form-group" style="margin:0;">
+            <label style="font-size:.7rem;font-weight:700;text-transform:uppercase;
+                letter-spacing:.06em;color:var(--gray-400);display:block;margin-bottom:.3rem;">Block</label>
+            <select name="block" class="form-control" style="max-width:165px;">
+                <option value="">All Blocks</option>
+                <option value="A" selected="@(Model.FilterBlock=="A"?"selected":"")">Block A — Residential</option>
+                <option value="B" selected="@(Model.FilterBlock=="B"?"selected":"")">Block B — Residential</option>
+                <option value="C"selected="@(Model.FilterBlock=="C"?"selected":"")">Block C — BnB</option>
+            </select>
+        </div>
+
+        <div class="form-group" style="margin:0;">
+            <label style="font-size:.7rem;font-weight:700;text-transform:uppercase;
+                letter-spacing:.06em;color:var(--gray-400);display:block;margin-bottom:.3rem;">Purpose</label>
+            <select name="purpose" class="form-control" style="max-width:185px;">
+                <option value="">All Purposes</option>
+                @foreach (var p in Model.AverageDurationByPurpose.Keys)
+                {
+                    <option value="@p" selected="@(Model.FilterPurpose==p?"selected":"")">@p</option>
+                }
+            </select>
+        </div>
+
+        <!-- Quick-range buttons -->
+        <div style="display:flex;gap:.4rem;align-items:flex-end;padding-bottom:1px;">
+            @{
+                void QBtn(string label, int days)
+                {
+                    var qFrom = DateTime.Today.AddDays(-days).ToString("yyyy-MM-dd");
+                    var qTo   = DateTime.Today.ToString("yyyy-MM-dd");
+                    <a href="?from=@qFrom&to=@qTo&block=@Model.FilterBlock&purpose=@Model.FilterPurpose"
+                       class="btn btn-secondary"
+                       style="padding:.35rem .7rem;font-size:.75rem;">@label</a>
+                }
+            }
+            @{ QBtn("7d",   7);  }
+            @{ QBtn("30d",  30); }
+            @{ QBtn("90d",  90); }
+        </div>
+
+        <button type="submit" class="btn btn-primary">🔍 Apply</button>
+        <a asp-action="Index" class="btn btn-secondary">✕ Reset</a>
+    </form>
+</div>
+
+<!--KPI CARDS -->
+<div class="stats-grid" style="margin-bottom:1.5rem;">
+    <div class="stat-card blue">
+        <div class="stat-icon">📋</div>
+        <div class="stat-info">
+            <div class="value">@Model.TotalVisitsInRange</div>
+            <div class="label">Total Visits</div>
+        </div>
+    </div>
+    <div class="stat-card teal">
+        <div class="stat-icon">👤</div>
+        <div class="stat-info">
+            <div class="value">@Model.TotalUniqueVisitorsInRange</div>
+            <div class="label">Unique Visitors</div>
+        </div>
+    </div>
+    <div class="stat-card orange">
+        <div class="stat-icon">⏱</div>
+        <div class="stat-info">
+            <div class="value">@Fmt(Model.OverallAverageDuration)</div>
+            <div class="label">Avg Duration</div>
+        </div>
+    </div>
+    <div class="stat-card @(Model.LongVisitAlertCount > 0 ? "red" : "green")">
+        <div class="stat-icon">⚠️</div>
+        <div class="stat-info">
+            <div class="value">@Model.LongVisitAlertCount</div>
+            <div class="label">Long-Stay Alerts</div>
+        </div>
+    </div>
+    <div class="stat-card blue">
+        <div class="stat-icon">🏠</div>
+        <div class="stat-info">
+            <div class="value">@Model.ResidentialVisitsInRange</div>
+            <div class="label">Residential</div>
+        </div>
+    </div>
+    <div class="stat-card purple">
+        <div class="stat-icon">🏪</div>
+        <div class="stat-info">
+            <div class="value">@Model.BnbVisitsInRange</div>
+            <div class="label">BnB Stays</div>
+        </div>
+    </div>
+</div>
+
+<!-- RANGE STAT PILLS-->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));
+            gap:1rem;margin-bottom:1.5rem;">
+    @{
+        void Pill(string icon, string lbl, string val)
+        {
+            <div style="background:var(--white);border:1px solid var(--gray-200);
+                border-radius:var(--radius-lg);padding:.85rem 1.1rem;
+                box-shadow:0 1px 4px rgba(0,0,0,.04);">
+                <div style="font-size:1.25rem;">@Html.Raw(icon)</div>
+                <div style="font-size:1rem;font-weight:800;color:var(--gray-900);margin-top:.2rem;">@val</div>
+                <div style="font-size:.68rem;font-weight:600;text-transform:uppercase;
+                    letter-spacing:.06em;color:var(--gray-400);">@lbl</div>
+            </div>
+        }
+    }
+    @{ Pill("🕐","Peak Hour",       Model.DateRangeStats.PeakHour); }
+    @{ Pill("🏠","Top Unit",        $"{Model.DateRangeStats.MostVisitedUnit} ({Model.DateRangeStats.MostVisitedUnitCount}×)"); }
+    @{ Pill("🎯","Top Purpose",     Model.DateRangeStats.MostCommonPurpose); }
+    @{ Pill("✅","Checked Out",     Model.DateRangeStats.TotalCheckOuts.ToString()); }
+    @{ Pill("📅","Days Analysed",   ((Model.FilterTo - Model.FilterFrom).Days + 1).ToString()); }
+</div>
+
+<!-- TABBED SECTIONS -->
+<div class="tab-nav">
+    <button class="tab-btn active" onclick="switchTab('duration')">⏱ Duration</button>
+    <button class="tab-btn"        onclick="switchTab('trends')">📈 Trends</button>
+    <button class="tab-btn"        onclick="switchTab('visitors')">🏆 Frequent Visitors</button>
+    <button class="tab-btn"        onclick="switchTab('alerts')" id="alertsTab">
+        ⚠️ Alerts
+        @if (Model.LongVisitAlertCount > 0)
+        {
+            <span style="background:#ef4444;color:#fff;border-radius:20px;
+                padding:.05rem .45rem;font-size:.65rem;margin-left:.3rem;">
+                @Model.LongVisitAlertCount
+            </span>
+        }
+    </button>
+    <button class="tab-btn"        onclick="switchTab('residents')">🏠 By Resident</button>
+</div>
+
+<!-- TAB: DURATION  -->
+<div class="tab-pane active" id="tab-duration">
+
+    <!-- Duration by purpose horizontal bar -->
+    <div class="panel" style="margin-bottom:1.25rem;">
+        <div class="panel-title">⏱ Average Duration by Visit Purpose</div>
+        @if (Model.AverageDurationByPurpose.Any())
+        {
+            var maxAvg = Model.AverageDurationByPurpose.Values.Max();
+
+            <!-- Visual table rows — each has an inline bar -->
+            <div style="margin-bottom:1.25rem;">
+                @foreach (var kv in Model.AverageDurationByPurpose.OrderByDescending(k => k.Value))
+                {
+                    var pct = maxAvg > 0 ? (int)((kv.Value / maxAvg) * 100) : 0;
+                    var col = kv.Value >= maxAvg * 0.8 ? "#ef4444"
+                            : kv.Value >= maxAvg * 0.5 ? "#f59e0b"
+                            : "#3b82f6";
+                    <div style="padding:.55rem 0;border-top:1px solid var(--gray-100);">
+                        <div style="display:flex;justify-content:space-between;
+                                    margin-bottom:.35rem;align-items:baseline;">
+                            <span style="font-size:.85rem;font-weight:600;color:var(--gray-800);">
+                                @kv.Key
+                            </span>
+                            <span style="font-size:.82rem;font-weight:800;color:@col;">
+                                @Fmt(kv.Value)
+                            </span>
+                        </div>
+                        <div class="dur-bar-wrap">
+                            <div class="dur-bar-fill"
+                                 style="width:@pct%;background:@col;"></div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- Chart.js bar -->
+            <div style="position:relative;height:@(Math.Max(180, Model.AverageDurationByPurpose.Count * 44))px;">
+                <canvas id="avgDurChart"></canvas>
+            </div>
+        }
+        else
+        {
+            <div class="empty">No completed visits with duration data in this period.</div>
+        }
+    </div>
+
+    <!-- Hourly histogram -->
+    <div class="panel">
+        <div class="panel-title">🕐 Check-In Volume by Hour of Day</div>
+        @if (Model.HourlyHistogram.Any(h => h > 0))
+        {
+            <div style="position:relative;height:200px;">
+                <canvas id="hourlyChart"></canvas>
+            </div>
+            <div style="margin-top:.75rem;display:flex;gap:1.5rem;flex-wrap:wrap;">
+                @{
+                    var peakH = Model.DateRangeStats.PeakHourIndex;
+                    var peakCount = Model.HourlyHistogram[peakH];
+                }
+                <div>
+                    <span style="font-size:.72rem;color:var(--gray-400);text-transform:uppercase;
+                        letter-spacing:.06em;">Peak Hour</span>
+                    <div style="font-size:1rem;font-weight:800;color:var(--danger);">
+                        @Model.DateRangeStats.PeakHour
+                    </div>
+                    <div style="font-size:.75rem;color:var(--gray-500);">@peakCount visits</div>
+                </div>
+                <div>
+                    <span style="font-size:.72rem;color:var(--gray-400);text-transform:uppercase;
+                        letter-spacing:.06em;">Quietest Hour</span>
+                    @{
+                        var quietH     = Model.HourlyHistogram
+                            .Select((v,i) => (v,i))
+                            .Where(x => x.v == 0 || true)
+                            .OrderBy(x => x.v).First().i;
+                        var quietCount = Model.HourlyHistogram[quietH];
+                    }
+                    <div style="font-size:1rem;font-weight:800;color:var(--gray-600);">
+                        @quietH:00
+                    </div>
+                    <div style="font-size:.75rem;color:var(--gray-500);">@quietCount visits</div>
+                </div>
+            </div>
+        }
+        else { <div class="empty">No data.</div> }
+    </div>
+</div>
+
+<!-- TAB: TRENDS -->
+<div class="tab-pane" id="tab-trends">
+
+    <!-- Daily multi-line chart -->
+    <div class="panel" style="margin-bottom:1.25rem;">
+        <div class="panel-title">📈 Daily Visit Trend — by Block</div>
+        @if (Model.DailyLabels.Any())
+        {
+            <div style="position:relative;height:260px;">
+                <canvas id="dailyChart"></canvas>
+            </div>
+        }
+        else { <div class="empty">No data for selected range.</div> }
+    </div>
+
+    <!-- Distribution row -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.25rem;margin-bottom:1.25rem;">
+
+        <div class="panel">
+            <div class="panel-title">🎯 Purpose Mix</div>
+            @if (Model.PurposeDistribution.Any())
+            {
+                <div style="position:relative;height:180px;display:flex;justify-content:center;">
+                    <canvas id="purposeChart"></canvas>
+                </div>
+                <div style="margin-top:.65rem;">
+                    @foreach (var s in Model.PurposeDistribution)
+                    {
+                        <div style="display:flex;justify-content:space-between;
+                                    align-items:center;font-size:.77rem;padding:.18rem 0;">
+                            <span style="display:flex;align-items:center;gap:.35rem;">
+                                <span style="width:9px;height:9px;border-radius:50%;
+                                    background:@s.Color;flex-shrink:0;display:inline-block;"></span>
+                                @s.Label
+                            </span>
+                            <strong>@((int)s.Value)</strong>
+                        </div>
+                    }
+                </div>
+            }
+            else { <div class="empty">No data.</div> }
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">🏢 Block Split</div>
+            @if (Model.BlockDistribution.Any())
+            {
+                <div style="position:relative;height:180px;display:flex;justify-content:center;">
+                    <canvas id="blockChart"></canvas>
+                </div>
+                <div style="margin-top:.65rem;">
+                    @foreach (var s in Model.BlockDistribution)
+                    {
+                        <div style="display:flex;justify-content:space-between;
+                                    align-items:center;font-size:.77rem;padding:.18rem 0;">
+                            <span style="display:flex;align-items:center;gap:.35rem;">
+                                <span style="width:9px;height:9px;border-radius:50%;
+                                    background:@s.Color;flex-shrink:0;display:inline-block;"></span>
+                                @s.Label
+                            </span>
+                            <strong>@((int)s.Value)</strong>
+                        </div>
+                    }
+                </div>
+            }
+            else { <div class="empty">No data.</div> }
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">📲 Check-In Method</div>
+            <div style="position:relative;height:180px;">
+                <canvas id="methodChart"></canvas>
+            </div>
+            <!-- Totals -->
+            <div style="margin-top:.65rem;">
+                @foreach (var s in Model.CheckInMethodDistribution)
+                {
+                    <div style="display:flex;justify-content:space-between;
+                                align-items:center;font-size:.77rem;padding:.18rem 0;">
+                        <span style="display:flex;align-items:center;gap:.35rem;">
+                            <span style="width:9px;height:9px;border-radius:50%;
+                                background:@s.Color;flex-shrink:0;display:inline-block;"></span>
+                            @s.Label
+                        </span>
+                        <strong>@((int)s.Value)</strong>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TAB: FREQUENT VISITORS -->
+<div class="tab-pane" id="tab-visitors">
+    <div class="panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;
+                    padding-bottom:.85rem;margin-bottom:1rem;border-bottom:1px solid var(--gray-100);">
+            <span class="panel-title" style="border:none;padding:0;margin:0;">
+                🏆 Top @Model.TopFrequentVisitors.Count Frequent Visitors
+            </span>
+            <span style="font-size:.75rem;color:var(--gray-400);">
+                by visit count — @Model.FilterFrom.ToString("dd MMM") to @Model.FilterTo.ToString("dd MMM yyyy")
+            </span>
+        </div>
+
+        @if (Model.TopFrequentVisitors.Any())
+        {
+            <!-- Podium for top 3 -->
+            <div style="display:flex;justify-content:center;gap:1.5rem;
+                        margin-bottom:1.5rem;align-items:flex-end;flex-wrap:wrap;">
+                @{
+                    var medals = new[] { ("🥇","#fbbf24"), ("🥈","#9ca3af"), ("🥉","#d97706") };
+                    var top3   = Model.TopFrequentVisitors.Take(3).ToList();
+                    var order  = top3.Count >= 2 ? new[]{1,0,2} : new[]{0};
+                }
+                @foreach (var idx in order.Where(i => i < top3.Count))
+                {
+                    var v      = top3[idx];
+                    var medal  = medals[idx];
+                    var ht     = idx == 0 ? "110px" : idx == 1 ? "85px" : "65px";
+                    <div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:.4rem;">
+                        <div style="font-size:1.5rem;">@medal.Item1</div>
+                        @if (!string.IsNullOrEmpty(v.PhotoUrl))
+                        {
+                            <img src="@v.PhotoUrl" style="width:52px;height:52px;border-radius:50%;
+                                 object-fit:cover;border:2px solid @medal.Item2;" />
+                        }
+                        else
+                        {
+                            <div class="avatar" style="width:52px;height:52px;font-size:.95rem;
+                                 border:2px solid @medal.Item2;flex-shrink:0;">
+                                @v.VisitorName[0].ToString().ToUpper()
+                            </div>
+                        }
+                        <div style="font-size:.82rem;font-weight:700;color:var(--gray-800);max-width:100px;
+                            overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@v.VisitorName</div>
+                        <div style="font-size:1.1rem;font-weight:800;color:@medal.Item2;">@v.VisitCount visits</div>
+                        <div style="background:@medal.Item2;width:60px;height:@ht;border-radius:4px 4px 0 0;
+                             opacity:.25;margin-top:auto;"></div>
+                    </div>
+                }
+            </div>
+
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Visitor</th>
+                        <th>Contact</th>
+                        <th style="text-align:center;">Visits</th>
+                        <th>Top Unit</th>
+                        <th>Avg Duration</th>
+                        <th>Last Visit</th>
+                        <th>Frequency</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (int i = 0; i < Model.TopFrequentVisitors.Count; i++)
+                    {
+                        var v    = Model.TopFrequentVisitors[i];
+                        var days = (Model.FilterTo - Model.FilterFrom).Days + 1;
+                        var freq = days > 0 ? Math.Round(v.VisitCount / (double)days * 7, 1) : 0;
+                        <tr>
+                            <td>
+                                <span style="width:22px;height:22px;border-radius:50%;
+                                    background:@(i < 3 ? "#fbbf24" : "var(--gray-100)");
+                                    color:@(i < 3 ? "#fff" : "var(--gray-500)");
+                                    display:inline-flex;align-items:center;justify-content:center;
+                                    font-size:.68rem;font-weight:800;">@(i+1)</span>
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(v.PhotoUrl))
+                                {
+                                    <img src="@v.PhotoUrl" style="width:26px;height:26px;border-radius:50%;
+                                         object-fit:cover;margin-right:.4rem;vertical-align:middle;" />
+                                }
+                                else
+                                {
+                                    <span class="avatar avatar-sm"
+                                          style="display:inline-flex;margin-right:.4rem;vertical-align:middle;">
+                                        @v.VisitorName[0].ToString().ToUpper()
+                                    </span>
+                                }
+                                <strong>@v.VisitorName</strong>
+                            </td>
+                            <td style="font-size:.8rem;color:var(--gray-500);">@(v.ContactNumber ?? "—")</td>
+                            <td style="text-align:center;">
+                                <span class="badge @(v.VisitCount >= 10 ? "badge-red" : v.VisitCount >= 5 ? "badge-orange" : "badge-blue")">
+                                    @v.VisitCount
+                                </span>
+                            </td>
+                            <td>
+                                @if (v.MostVisitedUnit != null)
+                                {
+                                    <span class="badge @(v.MostVisitedUnit.StartsWith("C") ? "badge-purple" : "badge-gray")">
+                                        @v.MostVisitedUnit
+                                    </span>
+                                }
+                                else { <span style="color:var(--gray-400);">—</span> }
+                            </td>
+                            <td>@(v.AverageDurationMinutes > 0 ? Fmt(v.AverageDurationMinutes) : "—")</td>
+                            <td style="font-size:.8rem;">@(v.LastVisit?.ToString("dd MMM yyyy") ?? "—")</td>
+                            <td style="font-size:.78rem;color:var(--gray-500);">
+                                ~@freq visits/week
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <div class="empty">No visitor data for the selected period.</div>
+        }
+    </div>
+</div>
+
+<!-- TAB: ALERTS  -->
+<div class="tab-pane" id="tab-alerts">
+    <div class="panel" id="alerts">
+        <div style="display:flex;justify-content:space-between;align-items:center;
+                    padding-bottom:.85rem;margin-bottom:1rem;border-bottom:1px solid var(--gray-100);">
+            <span class="panel-title" style="border:none;padding:0;margin:0;">
+                ⚠️ Long-Stay Alerts
+            </span>
+            <span style="font-size:.75rem;color:var(--gray-400);">
+                Flagged when duration ≥ 3× the average for that visit purpose
+            </span>
+        </div>
+
+        @if (Model.LongVisitAlerts.Any())
+        {
+            <!-- Severity legend -->
+            <div style="display:flex;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap;">
+                @{
+                    void SevLegend(string col, string lbl) {
+                        <div style="display:flex;align-items:center;gap:.35rem;font-size:.75rem;color:var(--gray-600);">
+                            <span style="width:12px;height:12px;border-radius:3px;background:@col;flex-shrink:0;"></span>
+                            @lbl
+                        </div>
+                    }
+                }
+                @{ SevLegend("rgba(239,68,68,.06)",  "3–5× average"); }
+                @{ SevLegend("rgba(239,68,68,.11)",  "5–8× average"); }
+                @{ SevLegend("rgba(239,68,68,.18)",  "8×+ average (critical)"); }
+            </div>
+
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Visitor</th>
+                        <th>House</th>
+                        <th>Purpose</th>
+                        <th>Check-In</th>
+                        <th>Check-Out</th>
+                        <th>Actual</th>
+                        <th>Purpose Avg</th>
+                        <th>Multiplier</th>
+                        <th>Flag</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var a in Model.LongVisitAlerts)
+                    {
+                        var sevClass = a.Multiplier >= 8 ? "sev-3"
+                                     : a.Multiplier >= 5 ? "sev-2"
+                                     : "sev-1";
+                        <tr class="@sevClass">
+                            <td><strong>@a.VisitorName</strong></td>
+                            <td>
+                                <span class="badge @(a.HouseNumber?.StartsWith("C") == true ? "badge-purple" : "badge-blue")">
+                                    @(a.HouseNumber ?? "—")
+                                </span>
+                            </td>
+                            <td style="font-size:.82rem;">@(a.Purpose ?? "—")</td>
+                            <td style="font-size:.8rem;">@a.CheckInTime.ToString("dd MMM, HH:mm")</td>
+                            <td style="font-size:.8rem;">
+                                @(a.CheckOutTime.HasValue ? a.CheckOutTime.Value.ToString("dd MMM, HH:mm") : "—")
+                            </td>
+                            <td>
+                                <span class="duration"
+                                      style="color:@(a.Multiplier>=8?"#7f1d1d":a.Multiplier>=5?"#b45309":"#dc2626");
+                                             font-weight:700;">
+                                    @Fmt(a.DurationMinutes)
+                                </span>
+                            </td>
+                            <td style="font-size:.8rem;color:var(--gray-500);">
+                                @Fmt(a.AverageDurationForPurpose) avg
+                            </td>
+                            <td>
+                                <span style="font-weight:800;color:@(a.Multiplier>=8?"#7f1d1d":"#dc2626");font-size:.9rem;">
+                                    @a.Multiplier×
+                                </span>
+                            </td>
+                            <td>
+                                <span style="background:rgba(239,68,68,.12);color:#b91c1c;
+                                    border-radius:12px;padding:.18rem .55rem;
+                                    font-size:.7rem;font-weight:700;white-space:nowrap;">
+                                    @a.Flag
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <div class="empty">
+                <span class="empty-icon">✅</span>
+                No unusually long visits detected in this period.
+                <div style="font-size:.8rem;color:var(--gray-400);margin-top:.35rem;">
+                    A visit is flagged when its duration is 3× or more above the average for the same purpose.
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- ─── TAB: BY RESIDENT -->
+<div class="tab-pane" id="tab-residents">
+
+    @if (Model.ResidentTrendData.Any())
+    {
+        <!-- Summary bar chart of total visits per resident -->
+
+            var topResidents = Model.ResidentTrendData.Values
+                .OrderByDescending(r => r.TotalVisits).Take(12).ToList();
+   
+        <div class="panel" style="margin-bottom:1.25rem;">
+            <div class="panel-title">📊 Visit Volume by Resident (Top @topResidents.Count)</div>
+            <div style="position:relative;height:@(Math.Max(180, topResidents.Count * 36))px;">
+                <canvas id="residentChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Resident cards grid -->
+        <div class="resident-cards">
+            @foreach (var kv in Model.ResidentTrendData.OrderByDescending(r => r.Value.TotalVisits))
+            {
+                var r      = kv.Value;
+                var isBnb  = r.UnitType == "BnB";
+                var maxW   = r.WeeklyTrend.Max(d => d.Count);
+                <div class="res-card @(isBnb ? "bnb" : "")">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                        <div>
+                            <div class="rc-house">@r.HouseNumber</div>
+                            <div class="rc-name">@r.ResidentName</div>
+                            <div class="rc-meta">
+                                @(isBnb ? "BnB Unit" : "Residential")
+                                @if (!string.IsNullOrEmpty(r.TopPurpose))
+                                { <span> · @r.TopPurpose</span> }
+                            </div>
+                        </div>
+                        @if (isBnb)
+                        {
+                            <span class="badge badge-purple" style="font-size:.65rem;">BnB</span>
+                        }
+                    </div>
+
+                    <div class="rc-stats">
+                        <div class="rc-stat">
+                            <div class="val">@r.TotalVisits</div>
+                            <div class="lbl">Visits</div>
+                        </div>
+                        <div class="rc-stat">
+                            <div class="val">@r.UniqueVisitors</div>
+                            <div class="lbl">Unique</div>
+                        </div>
+                        <div class="rc-stat">
+                            <div class="val">
+                                @(r.AverageDurationMinutes > 0 ? Fmt(r.AverageDurationMinutes) : "—")
+                            </div>
+                            <div class="lbl">Avg Dur.</div>
+                        </div>
+                    </div>
+
+                    <!-- Mini sparkline -->
+                    <div class="spark">
+                        @foreach (var dp in r.WeeklyTrend)
+                        {
+                            var ht = maxW > 0 ? (int)((dp.Count / (double)maxW) * 100) : 0;
+                            <div class="spark-bar"
+                                 title="@dp.ShortLabel: @dp.Count visit(s)"
+                                 style="height:@(Math.Max(ht, dp.Count > 0 ? 18 : 4))%;
+                                        background:@(dp.Count > 0 ? (isBnb ? "#8b5cf6" : "var(--blue-400)") : "var(--gray-100)");">
+                            </div>
+                        }
+                    </div>
+                    <div class="spark-labels">
+                        @foreach (var dp in r.WeeklyTrend)
+                        {
+                            <div class="spark-label">@dp.Date.ToString("dd")</div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="panel">
+            <div class="empty">No resident visit data for the selected period.</div>
+        </div>
+    }
+</div>
+
+<!-- CHART.JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<script>
+// ── Defaults ──────────────────────────────────────────────────────────────
+Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
+Chart.defaults.font.size   = 11;
+Chart.defaults.color       = '#6b7280';
+const GRID = { color:'rgba(0,0,0,0.04)', drawBorder:false };
+const TICK = { color:'#9ca3af', padding:6 };
+
+// ── Tab switcher ──────────────────────────────────────────────────────────
+function switchTab(id) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + id).classList.add('active');
+    event.currentTarget.classList.add('active');
+    // Trigger chart resize so hidden canvases draw correctly
+    setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
+}
+
+// Jump to alerts tab if URL has #alerts
+if (location.hash === '#alerts') {
+    document.querySelectorAll('.tab-btn')[3].click();
+}
+
+// ── 1. Avg duration horizontal bar ────────────────────────────────────────
+(function(){
+    const labels = @Html.Raw(avgDurLabels);
+    const data   = @Html.Raw(avgDurValues);
+    const ctx    = document.getElementById('avgDurChart');
+    if (!ctx || !data.length) return;
+    const max    = Math.max(...data);
+    const colors = data.map(v => v >= max*.8 ? '#ef4444' : v >= max*.5 ? '#f59e0b' : '#3b82f6');
+    new Chart(ctx, {
+        type:'bar',
+        data:{ labels, datasets:[{ data, backgroundColor:colors, borderRadius:5, borderSkipped:false }] },
+        options:{
+            responsive:true, maintainAspectRatio:false, indexAxis:'y',
+            plugins:{ legend:{display:false},
+                tooltip:{ callbacks:{ label:c => {
+                    const m = c.raw;
+                    return m >= 60 ? ` ${Math.floor(m/60)}h ${Math.floor(m%60)}m avg` : ` ${m}m avg`;
+                }}}},
+            scales:{
+                x:{ grid:GRID, ticks:{...TICK, callback:v => v+'m'} },
+                y:{ grid:{display:false}, ticks:TICK }
+            }
+        }
+    });
+})();
+
+// ── 2. Hourly histogram ────────────────────────────────────────────────────
+(function(){
+    const data = @Html.Raw(hourlyJs);
+    const ctx  = document.getElementById('hourlyChart');
+    if (!ctx) return;
+    const labels = Array.from({length:24}, (_,i) =>
+        i === 0 ? '12am' : i < 12 ? i+'am' : i === 12 ? '12pm' : (i-12)+'pm');
+    const max = Math.max(...data);
+    new Chart(ctx, {
+        type:'bar',
+        data:{ labels, datasets:[{
+            data,
+            backgroundColor: data.map(v => v === max ? '#ef4444' : '#3b82f6cc'),
+            borderRadius:3, borderSkipped:false
+        }]},
+        options:{
+            responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{display:false} },
+            scales:{
+                x:{ grid:GRID, ticks:{...TICK, maxRotation:0, font:{size:9}} },
+                y:{ grid:GRID, ticks:{...TICK, precision:0, beginAtZero:true} }
+            }
+        }
+    });
+})();
+
+// ── 3. Daily multi-line ────────────────────────────────────────────────────
+(function(){
+    const labels = @Html.Raw(dailyLabelsJs);
+    const series = @Html.Raw(dailySeriesJs);
+    const ctx    = document.getElementById('dailyChart');
+    if (!ctx || !labels.length) return;
+    new Chart(ctx, {
+        type:'line',
+        data:{
+            labels,
+            datasets: series.map(s => ({
+                label: s.label, data: s.data,
+                borderColor: s.color, backgroundColor: s.color+'22',
+                borderWidth:2, pointRadius:2, pointHoverRadius:5,
+                fill:true, tension:.35
+            }))
+        },
+        options:{
+            responsive:true, maintainAspectRatio:false,
+            plugins:{
+                legend:{ display:true, position:'top',
+                    labels:{ boxWidth:10, padding:12, font:{size:11} }},
+                tooltip:{ mode:'index', intersect:false }
+            },
+            scales:{
+                x:{ grid:GRID, ticks:{...TICK, maxTicksLimit:12, maxRotation:35} },
+                y:{ grid:GRID, ticks:{...TICK, precision:0, beginAtZero:true} }
+            }
+        }
+    });
+})();
+
+// ── 4. Purpose doughnut ────────────────────────────────────────────────────
+(function(){
+    const ctx = document.getElementById('purposeChart');
+    if (!ctx) return;
+    new Chart(ctx, {
+        type:'doughnut',
+        data:{ labels:@Html.Raw(purposeLabels),
+               datasets:[{ data:@Html.Raw(purposeValues),
+                           backgroundColor:@Html.Raw(purposeColors), borderWidth:0 }]},
+        options:{ responsive:true, maintainAspectRatio:false, cutout:'62%',
+            plugins:{ legend:{display:false},
+                tooltip:{ callbacks:{ label:c => ` ${c.label}: ${c.raw}` }}}}
+    });
+})();
+
+// ── 5. Block doughnut ──────────────────────────────────────────────────────
+(function(){
+    const ctx = document.getElementById('blockChart');
+    if (!ctx) return;
+    new Chart(ctx, {
+        type:'doughnut',
+        data:{ labels:@Html.Raw(blockLabels),
+               datasets:[{ data:@Html.Raw(blockValues),
+                           backgroundColor:@Html.Raw(blockColors), borderWidth:0 }]},
+        options:{ responsive:true, maintainAspectRatio:false, cutout:'62%',
+            plugins:{ legend:{display:false},
+                tooltip:{ callbacks:{ label:c => ` ${c.label}: ${c.raw}` }}}}
+    });
+})();
+
+// ── 6. Method horizontal bar ───────────────────────────────────────────────
+(function(){
+    const ctx = document.getElementById('methodChart');
+    if (!ctx) return;
+    new Chart(ctx, {
+        type:'bar',
+        data:{ labels:@Html.Raw(methodLabels),
+               datasets:[{ data:@Html.Raw(methodValues),
+                           backgroundColor:@Html.Raw(methodColors),
+                           borderRadius:6, borderSkipped:false }]},
+        options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y',
+            plugins:{ legend:{display:false},
+                tooltip:{ callbacks:{ label:c => ` ${c.raw} visits` }}},
+            scales:{
+                x:{ grid:GRID, ticks:{...TICK, precision:0} },
+                y:{ grid:{display:false}, ticks:TICK }
+            }
+        }
+    });
+})();
+
+// ── 7. Resident volume horizontal bar ─────────────────────────────────────
+(function(){
+    const ctx = document.getElementById('residentChart');
+    if (!ctx) return;
+    @{
+        var topR = Model.ResidentTrendData.Values
+            .OrderByDescending(r => r.TotalVisits).Take(12).ToList();
+    }
+    const rLabels = @J(topR.Select(r => r.HouseNumber + " — " + r.ResidentName.Split(' ').First()));
+    const rValues = @J(topR.Select(r => r.TotalVisits));
+    const rColors = @J(topR.Select(r => r.UnitType == "BnB" ? "#8b5cf6" : "#3b82f6"));
+
+    new Chart(ctx, {
+        type:'bar',
+        data:{ labels:rLabels,
+               datasets:[{ data:rValues, backgroundColor:rColors,
+                           borderRadius:5, borderSkipped:false }]},
+        options:{
+            responsive:true, maintainAspectRatio:false, indexAxis:'y',
+            plugins:{ legend:{display:false},
+                tooltip:{ callbacks:{ label:c => ` ${c.raw} visit(s)` }}},
+            scales:{
+                x:{ grid:GRID, ticks:{...TICK, precision:0} },
+                y:{ grid:{display:false}, ticks:{...TICK, font:{size:10}} }
+            }
+        }
+    });
+})();
+
+// ── Live stats polling (every 60 s, updates KPI cards) ────────────────────
+(function() {
+    async function refresh() {
+        try {
+            const r = await fetch('/Analytics/LiveStats');
+            if (!r.ok) return;
+            const d = await r.json();
+            const el = id => document.getElementById(id);
+            if (el('live-today'))   el('live-today').textContent   = d.totalToday;
+            if (el('live-inside'))  el('live-inside').textContent  = Math.max(0, d.currentlyInside);
+            if (el('live-alerts'))  el('live-alerts').textContent  = d.alerts;
+            if (el('live-avgdur'))  el('live-avgdur').textContent  = d.avgDuration + 'm';
+        } catch {}
+    }
+    setInterval(refresh, 60000);
+})();
+</script>

@@ -30,8 +30,9 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ActivityLogService>(); 
-builder.Services.AddSignalR();
 builder.Services.AddScoped<DashboardNotifier>();
+builder.Services.AddScoped<VisitAnalyticsService>();
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 

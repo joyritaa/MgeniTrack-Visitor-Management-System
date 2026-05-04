@@ -54,6 +54,7 @@ namespace MgeniTrack.Controllers
                 .ThenBy(u => u.UnitNumber)
                 .ToListAsync();
 
+            ViewData["UnitId"] = new SelectList(_context.Units, "UnitId", "UnitNumber");
             ViewData["UserId"] = users;
             ViewData["Units"] = unoccupiedUnits;
             return View();
@@ -64,36 +65,34 @@ namespace MgeniTrack.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("ResidentId,UserId,HouseNumber,UnitId")] Resident resident)
+        public async Task<IActionResult> Create(Resident resident)
         {
-            if (ModelState.IsValid)
-            {
-                // If UnitId is provided, mark the unit as occupied
-                if (resident.UnitId.HasValue)
-                {
-                    var unit = await _context.Units.FindAsync(resident.UnitId.Value);
-                    if (unit != null)
-                    {
-                        unit.IsOccupied = true;
-                        _context.Update(unit);
-                    }
-                }
+            if (!ModelState.IsValid)
+                return View(resident);
 
-                _context.Add(resident);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+            // Get the unit properly
+            var unit = await _context.Units.FindAsync(resident.UnitId);
+
+            if (unit == null)
+            {
+                ModelState.AddModelError("", "Selected unit does not exist.");
+                return View(resident);
             }
 
-            var users = new SelectList(_context.Users, "UserId", "Email", resident.UserId);
-            var unoccupiedUnits = await _context.Units
-                .Where(u => !u.IsOccupied)
-                .OrderBy(u => u.Block)
-                .ThenBy(u => u.UnitNumber)
-                .ToListAsync();
+            // Prevent double occupancy
+            if (unit.IsOccupied)
+            {
+                ModelState.AddModelError("", "This unit is already occupied.");
+                return View(resident);
+            }
 
-            ViewData["UserId"] = users;
-            ViewData["Units"] = unoccupiedUnits;
-            return View(resident);
+            // Assign resident
+            unit.IsOccupied = true;
+
+            _context.Residents.Add(resident);
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Index));
         }
 
         // GET: Residents/Edit/5
@@ -173,13 +172,21 @@ namespace MgeniTrack.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var resident = await _context.Residents.FindAsync(id);
+            var resident = await _context.Residents
+                .Include(r => r.Unit)
+                .FirstOrDefaultAsync(r => r.ResidentId == id);
+
             if (resident != null)
             {
+                if (resident.Unit != null)
+                {
+                    resident.Unit.IsOccupied = false;
+                }
+
                 _context.Residents.Remove(resident);
+                await _context.SaveChangesAsync();
             }
 
-            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 

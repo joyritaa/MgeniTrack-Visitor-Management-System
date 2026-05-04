@@ -9,17 +9,16 @@ public partial class User
 
     public string Firstname { get; set; } = null!;
 
-    public string? Secondname { get; set; }
-
-    public string? Gender { get; set; }
+    public string Secondname { get; set; }= null!;
+    public string Gender { get; set; } = null!;
 
     public string Passwordhash { get; set; } = null!;
 
-    public string? IdNumber { get; set; }
+    public string IdNumber { get; set; } = null!;
 
     public string Email { get; set; } = null!;
 
-    public string? PhoneNumber { get; set; }
+    public string PhoneNumber { get; set; } = null!;
 
     public string? UserStatus { get; set; }
 

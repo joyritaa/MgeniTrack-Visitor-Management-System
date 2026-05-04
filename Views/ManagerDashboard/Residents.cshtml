@@ -48,13 +48,19 @@ else
                             <strong>@r.User?.Firstname @r.User?.Secondname</strong>
                         </td>
                         <td>
-                            <span class="badge @(r.HouseNumber.StartsWith("C") ? "badge-purple" : "badge-blue")">
+                            @{
+                                var isBnb = r.HouseNumber.StartsWith("C");
+                                var unitType = isBnb ? "BnB" : "Residential";
+                            }
+                          
+                            <span class="badge @(isBnb ? "badge-purple" : "badge-blue")">
                                 @r.HouseNumber
                             </span>
                         </td>
+
                         <td>
-                            <span class="badge @(r.Unit?.UnitType == "BnB" ? "badge-purple" : "badge-gray")">
-                                @(r.Unit?.UnitType ?? "Residential")
+                            <span class="badge @(isBnb ? "badge-purple" : "badge-gray")">
+                                @unitType
                             </span>
                         </td>
                         <td style="font-size:0.82rem;">@(r.User?.Email ?? "—")</td>

@@ -37,9 +37,15 @@ namespace MgeniTrack.Controllers
             }
 
             var residentId = user.Resident.ResidentId;
-            ViewBag.HouseNumber = user.Resident.HouseNumber;
+            var houseNumber = user.Resident.HouseNumber;
+            var block = houseNumber.Substring(0, 1).ToUpper();
 
-            ViewBag.UnitType = user.Resident.Unit?.UnitType ?? "Residential";
+            var isBnb = block == "C";
+
+            ViewBag.HouseNumber = houseNumber;
+            ViewBag.UnitType = isBnb ? "BnB" : "Residential";
+            ViewBag.IsBnb = isBnb;
+
             ViewBag.FloorInfo = user.Resident.Unit != null
                 ? $"Floor {user.Resident.Unit.FloorNumber}, Unit {user.Resident.Unit.UnitPosition}"
                 : "";

@@ -62,7 +62,8 @@ namespace MgeniTrack.Controllers
             ViewBag.Block = block;
 
             IQueryable<Resident> query = _context.Residents
-                .Include(r => r.User).Include(r => r.Unit)
+                .Include(r => r.User)
+                .Include(r => r.Unit)
                 .Include(r => r.VisitorInvitations)
                 .OrderBy(r => r.HouseNumber);
 
@@ -77,6 +78,22 @@ namespace MgeniTrack.Controllers
             }
             if (!string.IsNullOrWhiteSpace(block) && block != "All")
                 query = query.Where(r => r.HouseNumber.StartsWith(block));
+
+            // ─── GET DATA ─────────────────────────────────
+            var residents = await query
+                .OrderBy(r => r.HouseNumber)
+                .ToListAsync();
+
+            // ─── APPLY BUSINESS RULE (IMPORTANT FIX) ──────
+            foreach (var r in residents)
+            {
+                var isBnb = r.HouseNumber.StartsWith("C");
+
+                // override/ensure correct classification
+                r.Unit ??= new Unit();
+
+                r.Unit.UnitType = isBnb ? "BnB" : "Residential";
+            }
 
             return View(await query.ToListAsync());
         }

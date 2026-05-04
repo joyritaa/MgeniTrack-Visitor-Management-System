@@ -1,84 +1,73 @@
 ﻿@model MgeniTrack.Models.User
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "User Profile";
 }
 
-<h1>Details</h1>
+<div class="panel" style="max-width:900px;margin:auto;">
 
-<div>
-    <h4>User</h4>
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+        <h2 style="margin:0;">User Profile</h2>
+
+        <span class="badge @(Model.UserStatus == "Active" ? "badge-green" : "badge-red")">
+            @Model.UserStatus
+        </span>
+    </div>
+
     <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Firstname)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Firstname)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Secondname)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Secondname)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Gender)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Gender)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Passwordhash)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Passwordhash)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.IdNumber)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.IdNumber)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Email)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Email)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.PhoneNumber)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.PhoneNumber)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.UserStatus)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.UserStatus)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CreatedAt)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CreatedAt)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.LastLogin)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.LastLogin)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CreatedByNavigation)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CreatedByNavigation.UserId)
-        </dd>
-    </dl>
-</div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.UserId">Edit</a> |
-    <a asp-action="Index">Back to List</a>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+
+        <div>
+            <strong>First Name</strong>
+            <div>@Model.Firstname</div>
+        </div>
+
+        <div>
+            <strong>Second Name</strong>
+            <div>@Model.Secondname</div>
+        </div>
+
+        <div>
+            <strong>Email</strong>
+            <div>@Model.Email</div>
+        </div>
+
+        <div>
+            <strong>Phone</strong>
+            <div>@Model.PhoneNumber</div>
+        </div>
+
+        <div>
+            <strong>ID Number</strong>
+            <div>@Model.IdNumber</div>
+        </div>
+
+        <div>
+            <strong>Gender</strong>
+            <div>@Model.Gender</div>
+        </div>
+
+        <div>
+            <strong>Created At</strong>
+            <div>@Model.CreatedAt?.ToString("dd MMM yyyy")</div>
+        </div>
+
+        <div>
+            <strong>Last Login</strong>
+            <div>@Model.LastLogin?.ToString("dd MMM yyyy HH:mm")</div>
+        </div>
+
+    </div>
+
+    <div style="margin-top:1.5rem;display:flex;gap:1rem;">
+        <a asp-action="Edit" asp-route-id="@Model.UserId" class="btn btn-primary">
+            Edit User
+        </a>
+
+        <a asp-action="Index" class="btn btn-secondary">
+            Back
+        </a>
+    </div>
+
 </div>
