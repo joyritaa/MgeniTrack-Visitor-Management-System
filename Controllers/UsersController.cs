@@ -1,16 +1,14 @@
 ﻿using MgeniTrack.Models;
 using MgeniTrack.Services;
 using MgeniTrack.ViewModels;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
+using System.Data;
 
 namespace MgeniTrack.Controllers
 {
-    [Authorize]
     public class UsersController : Controller
     {
         private readonly MgenitrackContext _context;
@@ -21,46 +19,21 @@ namespace MgeniTrack.Controllers
             _context = context;
             _notifier = notifier;
         }
-
         // GET: Users
         public async Task<IActionResult> Index()
         {
-            var users = _context.Users.Include(u => u.CreatedByNavigation);
-            return View(await users.ToListAsync());
-        }
-
-        // GET: Users/Details/5
-        public async Task<IActionResult> Details(int? id)
-        {
-            if (id == null) return NotFound();
-
-            var user = await _context.Users
-                .Include(u => u.CreatedByNavigation)
-                .FirstOrDefaultAsync(m => m.UserId == id);
-
-            if (user == null) return NotFound();
-            return View(user);
+            return View(await _context.Users.ToListAsync());
         }
 
         // GET: Users/Create
         public async Task<IActionResult> Create()
         {
             ViewBag.Roles = await _context.Roles
-                .Select(r => new SelectListItem
-                {
-                    Value = r.RoleId.ToString(),
-                    Text = r.RoleName
-                }).ToListAsync();
-
-            // Vacant units for resident assignment
-            ViewBag.VacantUnits = await _context.Units
-                .Where(u => u.IsOccupied == false)
-                .OrderBy(u => u.UnitNumber)
-                .Select(u => new SelectListItem
-                {
-                    Value = u.UnitId.ToString(),
-                    Text = u.UnitNumber
-                }).ToListAsync();
+               .Select(r => new SelectListItem
+               {
+                   Value = r.RoleId.ToString(),
+                   Text = r.RoleName
+               }).ToListAsync();
 
             return View();
         }
@@ -110,34 +83,6 @@ namespace MgeniTrack.Controllers
             };
             _context.UserRoles.Add(userRole);
 
-            // create Resident record + mark unit occupied
-            var role = await _context.Roles.FindAsync(model.SelectedRoleId);
-
-            Resident? resident = null;
-            string houseNumber = model.HouseNumber ?? "";
-
-            if (role?.RoleName == "Resident")
-            {
-                // If a unit was selected from the dropdown, use that unit's number
-                if (model.SelectedUnitId.HasValue)
-                {
-                    var unit = await _context.Units.FindAsync(model.SelectedUnitId.Value);
-                    if (unit != null)
-                    {
-                        houseNumber = unit.UnitNumber;
-                        unit.IsOccupied = true; // Mark occupied
-                    }
-                }
-
-                resident = new Resident
-                {
-                    UserId = user.UserId,
-                    HouseNumber = houseNumber,
-                    UnitId = model.SelectedUnitId
-                };
-                _context.Residents.Add(resident);
-            }
-
             await _context.SaveChangesAsync();
             TempData["Success"] = $"User {user.Firstname} created successfully.";
 
@@ -145,24 +90,12 @@ namespace MgeniTrack.Controllers
             await _notifier.NotifyUserCreated(new
             {
                 userId = user.UserId,
-                name = $"{user.Firstname} {user.Secondname}",
-                role = role?.RoleName,
-                houseNumber = houseNumber
+                name = $"{user.Firstname} {user.Secondname}"
             });
-
-            if (model.SelectedUnitId.HasValue)
-            {
-                await _notifier.NotifyUnitStatusChanged(new
-                {
-                    unitId = model.SelectedUnitId,
-                    unitNumber = houseNumber,
-                    isOccupied = true
-                });
-            }
-
             return RedirectToAction(nameof(Index));
         }
 
+        // GET: Users/Edit
         // GET: Users/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
@@ -195,8 +128,7 @@ namespace MgeniTrack.Controllers
                 SelectedRoleId = user.UserRoles.FirstOrDefault()?.RoleId ?? 0,
 
                 // optional fields (if you store them somewhere)
-                Shift = null,
-                HouseNumber = null
+                Shift = null
             };
 
             return View(model);
@@ -270,6 +202,7 @@ namespace MgeniTrack.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        // DELETE stays simple
         // GET: Users/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
@@ -287,9 +220,27 @@ namespace MgeniTrack.Controllers
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var user = await _context.Users.FindAsync(id);
-            if (user != null) _context.Users.Remove(user);
-            await _context.SaveChangesAsync();
+
+            if (user != null)
+            {
+                user.UserStatus = "Inactive";
+                await _context.SaveChangesAsync();
+            }
+
             return RedirectToAction(nameof(Index));
+        }
+
+        // GET: Users/Details/5
+        public async Task<IActionResult> Details(int? id)
+        {
+            if (id == null) return NotFound();
+
+            var user = await _context.Users
+                .Include(u => u.CreatedByNavigation)
+                .FirstOrDefaultAsync(m => m.UserId == id);
+
+            if (user == null) return NotFound();
+            return View(user);
         }
 
         // ── helpers 
@@ -297,12 +248,6 @@ namespace MgeniTrack.Controllers
         {
             ViewBag.Roles = await _context.Roles
                 .Select(r => new SelectListItem { Value = r.RoleId.ToString(), Text = r.RoleName })
-                .ToListAsync();
-
-            ViewBag.VacantUnits = await _context.Units
-                .Where(u => u.IsOccupied == false)
-                .OrderBy(u => u.UnitNumber)
-                .Select(u => new SelectListItem { Value = u.UnitId.ToString(), Text = u.UnitNumber })
                 .ToListAsync();
         }
         private bool UserExists(int id)

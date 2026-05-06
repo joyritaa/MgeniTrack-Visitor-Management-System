@@ -1,87 +1,111 @@
 ﻿@model MgeniTrack.Models.User
 
 @{
-    ViewData["Title"] = "Delete";
+    ViewData["Title"] = "Deactivate User";
 }
 
-<h1>Delete</h1>
+<div class="panel" style="max-width:700px;margin:auto;">
 
-<h3>Are you sure you want to delete this?</h3>
-<div>
-    <h4>User</h4>
+    <!-- HEADER -->
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+            <h2 style="margin-bottom:0.2rem;">Deactivate User</h2>
+            <p style="opacity:0.7;font-size:0.9rem;">
+                This will disable the user’s access to the system
+            </p>
+        </div>
+        <div style="font-size:2.5rem;opacity:0.3;">⚠️</div>
+    </div>
+
     <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Firstname)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Firstname)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Secondname)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Secondname)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Gender)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Gender)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Passwordhash)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Passwordhash)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.IdNumber)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.IdNumber)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Email)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Email)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.PhoneNumber)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.PhoneNumber)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.UserStatus)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.UserStatus)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CreatedAt)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CreatedAt)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.LastLogin)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.LastLogin)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CreatedByNavigation)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CreatedByNavigation.UserId)
-        </dd>
-    </dl>
-    
+
+    <!-- USER CARD -->
+    <div style="display:flex;gap:1rem;align-items:center;margin-bottom:1rem;">
+        <div style="
+            width:55px;height:55px;border-radius:50%;
+            background:#3b82f6;color:white;
+            display:flex;align-items:center;justify-content:center;
+            font-weight:700;font-size:1.2rem;">
+            @Model.Firstname.Substring(0, 1)@Model.Secondname.Substring(0, 1)
+        </div>
+
+        <div>
+            <div style="font-size:1.2rem;font-weight:700;">
+                @Model.Firstname @Model.Secondname
+            </div>
+            <div style="font-size:0.85rem;color:gray;">
+                @Model.Email
+            </div>
+        </div>
+    </div>
+
+    <!-- DETAILS GRID -->
+    <div style="
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        gap:0.75rem;
+        font-size:0.85rem;
+        margin-bottom:1rem;
+        ">
+
+        <div>
+            <strong>ID Number</strong><br />
+            @Model.IdNumber
+        </div>
+
+        <div>
+            <strong>Phone</strong><br />
+            @Model.PhoneNumber
+        </div>
+
+        <div>
+            <strong>Gender</strong><br />
+            @Model.Gender
+        </div>
+
+        <div>
+            <strong>Status</strong><br />
+            <span class="badge @(Model.UserStatus == "Active" ? "badge-green" : "badge-gray")">
+                @Model.UserStatus
+            </span>
+        </div>
+
+        <div>
+            <strong>Created</strong><br />
+            @(Model.CreatedAt?.ToString("dd MMM yyyy") ?? "—")
+        </div>
+
+        <div>
+            <strong>Last Login</strong><br />
+            @(Model.LastLogin?.ToString("dd MMM yyyy HH:mm") ?? "Never")
+        </div>
+
+    </div>
+
+    <!-- warn box -->
+    <div style="
+        background:#fef2f2;
+        border:1px solid #fecaca;
+        border-radius:10px;
+        padding:0.75rem;
+        margin-bottom:1rem;
+        font-size:0.8rem;
+        color:#b91c1c;
+        ">
+        ⚠️ This action will disable the user’s account. They will not be able to log in.
+    </div>
+
+    <!-- actions -->
     <form asp-action="Delete">
         <input type="hidden" asp-for="UserId" />
-        <input type="submit" value="Delete" class="btn btn-danger" /> |
-        <a asp-action="Index">Back to List</a>
+
+        <div style="display:flex;justify-content:space-between;">
+            <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+
+            <button type="submit" class="btn btn-danger">
+                Deactivate User
+            </button>
+        </div>
     </form>
+
 </div>

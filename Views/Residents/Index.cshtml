@@ -1,41 +1,52 @@
-﻿@model IEnumerable<MgeniTrack.Models.Resident>
-
+﻿@model List<MgeniTrack.Models.Resident>
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Manage Residents";
 }
 
-<h1>Index</h1>
+<div class="page-header">
+    <div class="page-header-left">
+        <h2>&#128100; Manage Residents</h2>
+        <p>All registered system Residents</p>
+    </div>
+    <a asp-action="Create" class="btn btn-primary">&#43; Add Resident</a>
+</div>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">&#9989; @TempData["Success"]</div>
+}
+
+
+<div class="table-card">
+    <table class="data-table">
+
     <thead>
         <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.HouseNumber)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.User)
-            </th>
+            <th>Name</th>
+            <th>Unit</th>
+            <th>Status</th>
             <th></th>
         </tr>
     </thead>
+
     <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.HouseNumber)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.User.UserId)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.ResidentId">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.ResidentId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.ResidentId">Delete</a>
-            </td>
-        </tr>
-}
+        @foreach (var r in Model)
+        {
+            <tr>
+                <td>@r.User.Firstname @r.User.Secondname</td>
+                <td>@r.Unit.UnitNumber</td>
+                <td>
+                    <span class="badge @(r.Unit.IsOccupied ? "badge-green" : "badge-gray")">
+                        @(r.Unit.IsOccupied ? "Occupied" : "Free")
+                    </span>
+                </td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@r.ResidentId">Edit</a> |
+                     <a asp-action="Details" asp-route-id="@r.ResidentId">View</a> |
+                    <a asp-action="Delete" asp-route-id="@r.ResidentId">Delete</a>  |
+                </td>
+            </tr>
+        }
     </tbody>
 </table>
+</div>

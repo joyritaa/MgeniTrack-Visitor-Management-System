@@ -1,30 +1,86 @@
 ﻿@model MgeniTrack.Models.Resident
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Resident Details";
+    var unit = Model.Unit;
+    var user = Model.User;
+
+    var isBnb = unit?.UnitNumber?.StartsWith("C") == true;
 }
 
-<h1>Details</h1>
+<div class="panel" style="max-width:900px;margin:auto;">
 
-<div>
-    <h4>Resident</h4>
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+        <h2 style="margin:0;">Resident Profile</h2>
+     
+    </div>
+
     <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.HouseNumber)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.HouseNumber)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.User)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.User.UserId)
-        </dd>
-    </dl>
-</div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.ResidentId">Edit</a> |
-    <a asp-action="Index">Back to List</a>
+
+    <hr />
+
+    <!-- USER CARD -->
+    <div style="display:flex;gap:1rem;align-items:center;margin-bottom:1rem;">
+        <div style="
+            width:55px;height:55px;border-radius:50%;
+            background:#3b82f6;color:white;
+            display:flex;align-items:center;justify-content:center;
+            font-weight:700;font-size:1.2rem;">
+            @(user?.Firstname?.Substring(0,1))@(user?.Secondname?.Substring(0,1))
+        </div>
+
+
+        <div>
+            <div style="font-size:1.2rem;font-weight:700;">
+                @user?.Firstname @user?.Secondname
+            </div>
+            <div style="font-size:0.85rem;color:gray;">
+                @user?.Email
+            </div>
+        </div>
+    </div>
+
+    <!-- DETAILS GRID -->
+    <div style="
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        gap:0.75rem;
+        font-size:0.85rem;
+        margin-bottom:1rem;
+    ">
+
+        <div>
+            <strong>Unit Number</strong><br />
+            @(unit?.UnitNumber ?? "—")
+        </div>
+
+        <div>
+            <strong>Unit Type</strong><br />
+            <span class="badge @(isBnb ? "badge-purple" : "badge-blue")">
+                @(isBnb ? "BnB" : "Residential")
+            </span>
+        </div>
+
+        <div>
+            <strong>Floor</strong><br />
+            @(unit?.FloorNumber != null ? $"Floor {unit.FloorNumber}" : "—")
+        </div>
+
+        <div>
+            <strong>Position</strong><br />
+            @(unit?.UnitPosition.ToString() ?? "—")
+        </div>
+
+    </div>
+
+    <!-- ACTIONS -->
+    <div style="display:flex;justify-content:space-between;">
+        <a asp-action="Index" class="btn btn-secondary">Back</a>
+
+        <a asp-action="Edit" asp-route-id="@Model.ResidentId"
+           class="btn btn-primary">
+            Edit Resident
+        </a>
+    </div>
+
 </div>
