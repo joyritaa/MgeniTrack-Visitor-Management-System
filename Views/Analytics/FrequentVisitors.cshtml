@@ -1,0 +1,60 @@
+﻿@model MgeniTrack.ViewModels.VisitAnalyticsViewModel
+
+@{
+    ViewData["Title"] = "Frequent Visitors";
+}
+
+<partial name="_AnalyticsNav" model="Model" />
+
+<div class="panel">
+
+    <div class="panel-header">
+        <div>
+            <h2>Frequent Visitors</h2>
+            <p>Visitors with highest activity</p>
+        </div>
+    </div>
+
+    <div class="resident-cards">
+
+        @foreach (var visitor in Model.TopFrequentVisitors)
+        {
+            <div class="res-card">
+
+                <div class="rc-house">
+                    @visitor.VisitCount Visits
+                </div>
+
+                <div class="rc-name">
+                    @visitor.VisitorName
+                </div>
+
+                <div class="rc-meta">
+                    Last Visit:
+                    @(visitor.LastVisit?.ToString("dd MMM yyyy") ?? "—")
+                </div>
+
+                <div class="rc-stats">
+
+                    <div class="rc-stat">
+                        <div class="val">
+                            @Math.Round(visitor.AverageDurationMinutes, 1)
+                        </div>
+                        <div class="lbl">Avg Mins</div>
+                    </div>
+
+                    <div class="rc-stat">
+                        <div class="val">
+                            @(visitor.MostVisitedUnit ?? "—")
+                        </div>
+                        <div class="lbl">Top Unit</div>
+                    </div>
+
+                </div>
+
+            </div>
+        }
+
+    </div>
+
+</div>

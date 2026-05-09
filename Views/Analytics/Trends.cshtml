@@ -1,0 +1,72 @@
+﻿@model MgeniTrack.ViewModels.VisitAnalyticsViewModel
+
+@{
+    ViewData["Title"] = "Analytics Trends";
+}
+
+<partial name="_AnalyticsNav" model="Model" />
+
+<div class="panel">
+
+    <div class="panel-header">
+        <div>
+            <h2>Visit Trends</h2>
+            <p>Daily traffic and movement patterns</p>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+
+        <div class="stat-card blue">
+            <div class="value">@Model.TotalVisitsInRange</div>
+            <div class="label">Total Visits</div>
+        </div>
+
+        <div class="stat-card green">
+            <div class="value">@Math.Round(Model.OverallAverageDuration, 1)m</div>
+            <div class="label">Average Duration</div>
+        </div>
+
+        <div class="stat-card orange">
+            <div class="value">@Model.DateRangeStats.PeakHour</div>
+            <div class="label">Peak Hour</div>
+        </div>
+
+    </div>
+
+    <div class="chart-card">
+        <h3>Daily Visit Trends</h3>
+
+        <canvas id="dailyTrendChart"></canvas>
+    </div>
+
+</div>
+
+@section Scripts {
+
+    <script>
+
+        const trendLabels = @Html.Raw(Json.Serialize(
+                    Model.DateRangeStats.DailyCheckIns.Select(x => x.Date.ToString("dd MMM"))
+            ));
+
+        const trendValues = @Html.Raw(Json.Serialize(
+                    Model.DateRangeStats.DailyCheckIns.Select(x => x.Count)
+            ));
+
+        new Chart(document.getElementById('dailyTrendChart'), {
+            type: 'line',
+            data: {
+                labels: trendLabels,
+                datasets: [{
+                    label: 'Visits',
+                    data: trendValues,
+                    tension: .4,
+                    fill: true
+                }]
+            }
+        });
+
+    </script>
+
+}

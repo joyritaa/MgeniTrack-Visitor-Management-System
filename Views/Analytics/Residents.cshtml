@@ -1,0 +1,75 @@
+﻿@model MgeniTrack.ViewModels.VisitAnalyticsViewModel
+
+@{
+    ViewData["Title"] = "Resident Analytics";
+}
+
+<partial name="_AnalyticsNav" model="Model" />
+
+<div class="panel">
+
+    <div class="panel-header">
+        <div>
+            <h2>Resident Analytics</h2>
+            <p>Traffic activity by resident</p>
+        </div>
+    </div>
+
+    <div class="resident-cards">
+
+        @foreach (var resident in Model.ResidentTrendData.Values
+            .OrderByDescending(x => x.TotalVisits))
+        {
+            var isBnb = resident.UnitType == "BnB";
+
+            <div class="res-card @(isBnb ? "bnb" : "")">
+
+                <div class="rc-house">
+                    @resident.HouseNumber
+                </div>
+
+                <div class="rc-name">
+                    @resident.ResidentName
+                </div>
+
+                <div class="rc-meta">
+                    @(isBnb ? "BnB Unit" : "Residential")
+                </div>
+
+                <div class="rc-stats">
+
+                    <div class="rc-stat">
+                        <div class="val">
+                            @resident.TotalVisits
+                        </div>
+                        <div class="lbl">Visits</div>
+                    </div>
+
+                    <div class="rc-stat">
+                        <div class="val">
+                            @resident.UniqueVisitors
+                        </div>
+                        <div class="lbl">Visitors</div>
+                    </div>
+
+                    <div class="rc-stat">
+                        <div class="val">
+                            @Math.Round(resident.AverageDurationMinutes, 1)
+                        </div>
+                        <div class="lbl">Avg Mins</div>
+                    </div>
+
+                </div>
+
+                <div class="dur-bar-wrap">
+                    <div class="dur-bar-fill"
+                         style="width:@Math.Min(resident.AverageDurationMinutes, 100)%">
+                    </div>
+                </div>
+
+            </div>
+        }
+
+    </div>
+
+</div>
