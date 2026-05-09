@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MgeniTrack.Services
 {
-    /// Computes all analytics data for the VisitAnalyticsViewModel.
+    //Computes all analytics data for the VisitAnalyticsViewModel.
     public class VisitAnalyticsService
     {
         private readonly MgenitrackContext _context;
