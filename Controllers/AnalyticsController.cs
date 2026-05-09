@@ -137,5 +137,58 @@ namespace MgeniTrack.Controllers
                 avgDuration = Math.Round(vm.OverallAverageDuration, 1)
             });
         }
+
+        public async Task<IActionResult> Trends(string? from = null, string? to = null)
+        {
+            var dateFrom = DateTime.TryParse(from, out var f)
+                ? f : DateTime.Today.AddDays(-30);
+
+            var dateTo = DateTime.TryParse(to, out var t)
+                ? t : DateTime.Today;
+
+            var vm = await _analytics.BuildAsync(dateFrom, dateTo);
+
+            return View(vm);
+        }
+
+        public async Task<IActionResult> FrequentVisitors(string? from = null, string? to = null)
+        {
+            var dateFrom = DateTime.TryParse(from, out var f)
+                ? f : DateTime.Today.AddDays(-30);
+
+            var dateTo = DateTime.TryParse(to, out var t)
+                ? t : DateTime.Today;
+
+            var vm = await _analytics.BuildAsync(dateFrom, dateTo);
+
+            return View(vm);
+        }
+
+        public async Task<IActionResult> Alerts(string? from = null, string? to = null)
+        {
+            var dateFrom = DateTime.TryParse(from, out var f)
+                ? f : DateTime.Today.AddDays(-30);
+
+            var dateTo = DateTime.TryParse(to, out var t)
+                ? t : DateTime.Today;
+
+            var vm = await _analytics.BuildAsync(dateFrom, dateTo);
+
+            return View(vm);
+        }
+
+        public async Task<IActionResult> Residents(string? from = null, string? to = null)
+        {
+            var dateFrom = DateTime.TryParse(from, out var f)
+                ? f : DateTime.Today.AddDays(-30);
+
+            var dateTo = DateTime.TryParse(to, out var t)
+                ? t : DateTime.Today;
+
+            var vm = await _analytics.BuildAsync(dateFrom, dateTo);
+
+            return View(vm);
+        }
+
     }
 }

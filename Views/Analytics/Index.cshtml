@@ -221,10 +221,25 @@
 
 <!-- TABBED SECTIONS -->
 <div class="tab-nav">
+
     <button class="tab-btn active" onclick="switchTab('duration')">⏱ Duration</button>
-    <button class="tab-btn"        onclick="switchTab('trends')">📈 Trends</button>
-    <button class="tab-btn"        onclick="switchTab('visitors')">🏆 Frequent Visitors</button>
-    <button class="tab-btn"        onclick="switchTab('alerts')" id="alertsTab">
+
+    <a asp-controller="Analytics"
+       asp-action="Trends"
+       class="tab-btn @(ViewContext.RouteData.Values["action"]?.ToString() == "Trends" ? "active" : "")">
+        📈 Trends
+    </a>
+
+    <a asp-controller="Analytics"
+       asp-action="FrequentVisitors"
+       class="tab-btn @(ViewContext.RouteData.Values["action"]?.ToString() == "FrequentVisitors" ? "active" : "")">
+        🏆 Frequent Visitors
+    </a>
+
+    <a asp-controller="Analytics"
+       asp-action="Alerts"
+       id="alertsTab"
+       class="tab-btn @(ViewContext.RouteData.Values["action"]?.ToString() == "Alerts" ? "active" : "")">
         ⚠️ Alerts
         @if (Model.LongVisitAlertCount > 0)
         {
@@ -233,8 +248,13 @@
                 @Model.LongVisitAlertCount
             </span>
         }
-    </button>
-    <button class="tab-btn"        onclick="switchTab('residents')">🏠 By Resident</button>
+   </a>
+
+        <a asp-controller="Analytics"
+               asp-action="Residents"
+               class="tab-btn @(ViewContext.RouteData.Values["action"]?.ToString() == "Residents" ? "active" : "")">
+            🏠 By Resident
+        </a>
 </div>
 
 <!-- TAB: DURATION  -->
