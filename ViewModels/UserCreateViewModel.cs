@@ -33,5 +33,7 @@ namespace MgeniTrack.ViewModels
 
         public string? Shift { get; set; }  // For Guard
 
+        [Required(ErrorMessage = "You must accept the privacy policy")]
+        public bool AcceptPrivacyPolicy { get; set; }
     }
 }

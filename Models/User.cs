@@ -32,6 +32,10 @@ public partial class User
     public DateTime? LastActivityAt { get; set; }
 
 
+    public bool AcceptedPrivacyPolicy { get; set; }
+
+    public DateTime? PrivacyAcceptedAt { get; set; }
+
     public virtual ICollection<ActivityLog> ActivityLogs { get; set; } = new List<ActivityLog>();
 
     public virtual User? CreatedByNavigation { get; set; }

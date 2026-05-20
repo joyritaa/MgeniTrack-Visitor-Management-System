@@ -86,6 +86,11 @@ namespace MgeniTrack.Controllers
             await _context.SaveChangesAsync();
             TempData["Success"] = $"User {user.Firstname} created successfully.";
 
+            //privacy policy
+            user.AcceptedPrivacyPolicy = model.AcceptPrivacyPolicy;
+            user.PrivacyAcceptedAt = DateTime.Now;
+
+
             // SignalR – notify admins
             await _notifier.NotifyUserCreated(new
             {
