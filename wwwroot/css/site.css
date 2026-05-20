@@ -1533,3 +1533,8 @@ body.login-page {
     color: #6b7280;
     font-size: .8rem;
 }
+
+
+.small-text {
+    font-size: 8px;
+}
